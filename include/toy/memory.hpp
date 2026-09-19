@@ -17,9 +17,9 @@ public:
     checkBounds(Address, 4);
     checkAlignment(Address);
 
-    return (static_cast<uint32_t>(Bytes[Address + 3])) |
-           (static_cast<uint32_t>(Bytes[Address + 3]) << 8) |
-           (static_cast<uint32_t>(Bytes[Address + 3]) << 16) |
+    return (static_cast<uint32_t>(Bytes[Address])) |
+           (static_cast<uint32_t>(Bytes[Address + 1]) << 8) |
+           (static_cast<uint32_t>(Bytes[Address + 2]) << 16) |
            (static_cast<uint32_t>(Bytes[Address + 3]) << 24);
   }
 

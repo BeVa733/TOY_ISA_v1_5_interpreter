@@ -15,23 +15,24 @@ struct ExecutionState {
   uint32_t ExitCode      = 0;
 
   void reset() {
-    Status            = ExecutionStatus::RUNNING;
-    uint32_t ExitCode = 0;
+    Status   = ExecutionStatus::RUNNING;
+    ExitCode = 0;
   }
 
   void halt(uint32_t Code) {
-    Status            = ExecutionStatus::HALTED;
-    uint32_t ExitCode = Code;
+    Status   = ExecutionStatus::HALTED;
+    ExitCode = Code;
   }
 
   void fault() { Status = ExecutionStatus::FAULTED; }
 };
 
 enum class ErrorCode : uint8_t {
-  INVALID_INSTRUCTION  = 0,
-  MEMORY_OUT_OF_BOUNDS = 1,
-  MISALIGNED_ACCESS    = 2,
-  UNSUPPORTED_SYSCALL  = 3
+  INVALID_INSTRUCTION   = 0,
+  MEMORY_OUT_OF_BOUNDS  = 1,
+  MISALIGNED_ACCESS     = 2,
+  UNSUPPORTED_SYSCALL   = 3,
+  INCORRECT_BINARY_FILE = 4
 };
 
 class SimulationException : public std::runtime_error {
