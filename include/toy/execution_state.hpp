@@ -14,9 +14,17 @@ struct ExecutionState {
   ExecutionStatus Status = ExecutionStatus::RUNNING;
   uint32_t ExitCode      = 0;
 
-  void reset();
-  void halt(uint32_t Code);
-  void fault();
+  void reset() {
+    Status            = ExecutionStatus::RUNNING;
+    uint32_t ExitCode = 0;
+  }
+
+  void halt(uint32_t Code) {
+    Status            = ExecutionStatus::HALTED;
+    uint32_t ExitCode = Code;
+  }
+
+  void fault() { Status = ExecutionStatus::FAULTED; }
 };
 
 enum class ErrorCode : uint8_t {
