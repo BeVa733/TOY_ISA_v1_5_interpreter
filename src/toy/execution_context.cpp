@@ -54,3 +54,14 @@ void ExecutionContext::loadBinary(const std::string &Filename,
   Cpu.PC = LoadAddress;
   State.reset();
 }
+
+void ExecutionContext::step() {
+  TIInstruction Inst = Decoder.decode(fetch());
+  execute(Inst);
+}
+
+void ExecutionContext::run() {
+  while (State.Status == ExecutionStatus::RUNNING) {
+    step();
+  }
+}

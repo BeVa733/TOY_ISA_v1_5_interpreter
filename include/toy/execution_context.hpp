@@ -23,6 +23,11 @@ public:
   /// Execute instructions while the execution status is RUNNING.
   void run();
 
+  /// Const metodes for check state in tests
+  const TICpuState &cpu() const { return Cpu; }
+  const TIMemory &memory() const { return Memory; }
+  const TIExecutionState &state() const { return State; }
+
 private:
   TICpuState Cpu{};
   TIMemory Memory;
