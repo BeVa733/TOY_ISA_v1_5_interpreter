@@ -34,11 +34,21 @@ public:
     Bytes[Address + 3] = static_cast<uint8_t>((Value >> 24) & 0xFF);
   }
 
+  /// Store two words
+  void writePair32(uint32_t Address, uint32_t First, uint32_t Second) {
+    checkBounds(Address, 8);
+    checkAlignment(Address);
+    write32(Address, First);
+    write32(Address + 4, Second);
+  }
+
 private:
   std::vector<uint8_t> Bytes{};
 
   void checkBounds(uint32_t Address, std::size_t ByteCount) const {
-    if ((Address + ByteCount) > Bytes.size()) {
+    constexpr uint64_t ADDRESS_SPACE_SIZE = uint64_t{1} << 32;
+    if (Address > Bytes.size() || ByteCount > Bytes.size() - Address ||
+        ByteCount > ADDRESS_SPACE_SIZE - Address) {
       throw SimulationException(
           ErrorCode::MEMORY_OUT_OF_BOUNDS,
           "[MEMORY] Error: nemory out of bounds at address " +

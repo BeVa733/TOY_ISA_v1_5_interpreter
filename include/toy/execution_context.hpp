@@ -13,8 +13,7 @@ class ExecutionContext {
 public:
   explicit ExecutionContext(std::size_t MemorySize) : Memory(MemorySize) {}
 
-  /// Load complete 32-bit words, then set PC and reset execution status.
-  /// Empty files are rejected; registers and memory outside the image are kept.
+  /// Load complete 32-bit words, set PC and reset execution status.
   void loadBinary(const std::string &Filename, uint32_t LoadAddress = 0);
 
   /// Fetch, decode and execute one instruction.
