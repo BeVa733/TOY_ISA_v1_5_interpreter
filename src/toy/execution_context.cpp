@@ -48,7 +48,7 @@ void ExecutionContext::loadBinary(const std::string &Filename,
                        (static_cast<uint32_t>(Buffer[Offset + 2]) << 16) |
                        (static_cast<uint32_t>(Buffer[Offset + 3]) << 24);
     uint32_t Address = static_cast<uint32_t>(LoadAddress + Offset);
-    Mem.write32(Address, Word);
+    Memory.write32(Address, Word);
   }
 
   Cpu.PC = LoadAddress;

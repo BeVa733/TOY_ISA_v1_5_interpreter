@@ -1,8 +1,8 @@
 #pragma once
 
 #include "cpu_state.hpp"
+#include "decoder.hpp"
 #include "execution_state.hpp"
-#include "instruction.hpp"
 #include "memory.hpp"
 
 #include <cstddef>
@@ -11,7 +11,7 @@
 
 class ExecutionContext {
 public:
-  explicit ExecutionContext(std::size_t MemorySize) : Mem(MemorySize) {}
+  explicit ExecutionContext(std::size_t MemorySize) : Memory(MemorySize) {}
 
   /// Load complete 32-bit words, then set PC and reset execution status.
   /// Empty files are rejected; registers and memory outside the image are kept.
@@ -24,12 +24,12 @@ public:
   void run();
 
 private:
-  CpuState Cpu{};
-  /// Initialize with Mem(MemorySize) in the context constructor.
-  Memory Mem;
-  ExecutionState State{};
+  TICpuState Cpu{};
+  TIMemory Memory;
+  TIExecutionState State{};
+  TIDecoder Decoder{};
 
-  uint32_t fetch() const;
-  static Instruction decode(uint32_t Word);
-  void execute(const Instruction &Inst);
+  uint32_t fetch() const { return Memory.read32(Cpu.PC); }
+
+  void execute(const TIInstruction &Inst);
 };

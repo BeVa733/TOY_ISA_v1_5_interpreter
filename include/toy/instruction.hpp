@@ -4,13 +4,13 @@
 #include <vector>
 
 // Internal operation identifiers, not ISA bit encodings.
-enum class Opcode : uint8_t {
+enum class TIOpcode : uint8_t {
   INVALID = 0,
   LI      = 1,
   ADD     = 2,
   ADDI    = 3,
   OR      = 4,
-  LD      = 5,
+  LDreg   = 5,
   ST      = 6,
   STP     = 7,
   BEQ     = 8,
@@ -19,7 +19,8 @@ enum class Opcode : uint8_t {
   SSAT    = 11,
   RORI    = 12,
   BEXT    = 13,
-  SYSCALL = 14
+  SYSCALL = 14,
+  LDimm   = 15
 };
 
 enum class OperandType : uint8_t {
@@ -32,7 +33,7 @@ struct Operand {
   uint32_t Value   = 0;
 };
 
-struct Instruction {
-  Opcode OpCode = Opcode::INVALID;
+struct TIInstruction {
+  TIOpcode OpCode = TIOpcode::INVALID;
   std::vector<Operand> Operands{};
 };

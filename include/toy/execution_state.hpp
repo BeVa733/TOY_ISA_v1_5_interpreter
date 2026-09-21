@@ -10,7 +10,7 @@ enum class ExecutionStatus : uint8_t {
   FAULTED = 2
 };
 
-struct ExecutionState {
+struct TIExecutionState {
   ExecutionStatus Status = ExecutionStatus::RUNNING;
   uint32_t ExitCode      = 0;
 

@@ -6,9 +6,9 @@
 
 #include "execution_state.hpp"
 
-class Memory {
+class TIMemory {
 public:
-  explicit Memory(std::size_t SizeBytes) : Bytes(SizeBytes, 0) {}
+  explicit TIMemory(std::size_t SizeBytes) : Bytes(SizeBytes, 0) {}
 
   std::size_t size() const { return Bytes.size(); }
 
