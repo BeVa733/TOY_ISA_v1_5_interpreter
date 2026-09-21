@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-enum class ExecutionStatus : uint8_t {
+enum class ExecutionStatus {
   RUNNING = 0,
   HALTED  = 1,
   FAULTED = 2

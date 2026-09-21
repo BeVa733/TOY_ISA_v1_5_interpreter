@@ -12,6 +12,24 @@ public:
 
   std::size_t size() const { return Bytes.size(); }
 
+  /// Copy an arbitrary byte range from guest memory.
+  std::vector<uint8_t> readBytes(uint32_t Address,
+                                 std::size_t ByteCount) const {
+    checkBounds(Address, ByteCount);
+
+    auto Begin = Bytes.begin() + Address;
+    return {Begin, Begin + ByteCount};
+  }
+
+  /// Copy bytes into guest memory. Byte accesses do not require alignment.
+  void writeBytes(uint32_t Address, const std::vector<uint8_t> &Data) {
+    checkBounds(Address, Data.size());
+
+    for (std::size_t Index = 0; Index < Data.size(); ++Index) {
+      Bytes[Address + Index] = Data[Index];
+    }
+  }
+
   uint32_t read32(uint32_t Address) const {
 
     checkBounds(Address, 4);
@@ -58,10 +76,9 @@ private:
 
   void checkAlignment(uint32_t Address) const {
     if (Address % 4 != 0) {
-      throw SimulationException(
-          ErrorCode::MISALIGNED_ACCESS,
-          "[MEMORY] Error: misaligned access at " +
-              std::to_string(Address));
+      throw SimulationException(ErrorCode::MISALIGNED_ACCESS,
+                                "[MEMORY] Error: misaligned access at " +
+                                    std::to_string(Address));
     }
   }
 };

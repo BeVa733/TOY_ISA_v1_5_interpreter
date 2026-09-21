@@ -4,6 +4,7 @@
 #include "decoder.hpp"
 #include "execution_state.hpp"
 #include "memory.hpp"
+#include "syscall_emulator.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -27,6 +28,7 @@ private:
   TIMemory Memory;
   TIExecutionState State{};
   TIDecoder Decoder{};
+  TISyscallEmulator SyscallEmulator{};
 
   uint32_t fetch() const { return Memory.read32(Cpu.PC); }
 

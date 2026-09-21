@@ -136,16 +136,12 @@ void ExecutionContext::execute(const TIInstruction &Inst) {
                                                  Registers[Operands[2].Value]);
       break;
 
-    case TIOpcode::SYSCALL: {
-      constexpr uint32_t EXIT_SYSCALL = 93;
-      if (Registers[8] != EXIT_SYSCALL) {
-        throw SimulationException(ErrorCode::UNSUPPORTED_SYSCALL,
-                                  "[EXECUTE] Unsupported syscall: " +
-                                      std::to_string(Registers[8]));
+    case TIOpcode::SYSCALL:
+      SyscallEmulator.execute(Cpu, Memory, State);
+      if (State.Status != ExecutionStatus::RUNNING) {
+        return;
       }
-      State.halt(Registers[0]);
-      return;
-    }
+      break;
 
     case TIOpcode::INVALID:
     default:
