@@ -50,18 +50,17 @@ std::string formatInstruction(uint32_t Address, uint32_t Word) {
   return Message.str();
 }
 
-void runSteps(ExecutionContext &Context, uint32_t Count) {
-  for (uint32_t Index = 0; Index < Count; ++Index) {
-    uint32_t Address = Context.cpu().PC;
-    uint32_t Word    = Context.memory().read32(Address);
+void runBlock(ExecutionContext &Context) {
+  uint32_t StartAddress = Context.cpu().PC;
 
-    try {
-      Context.step();
-    } catch (const std::exception &Error) {
-      throw std::runtime_error("step " + std::to_string(Index + 1) + ", " +
-                               formatInstruction(Address, Word) + "\n" +
-                               Error.what());
-    }
+  try {
+    Context.step();
+  } catch (const std::exception &Error) {
+    uint32_t FailedAddress = Context.cpu().PC;
+    uint32_t Word          = Context.memory().read32(FailedAddress);
+    throw std::runtime_error(
+        "block at address 0x" + std::to_string(StartAddress) + ", " +
+        formatInstruction(FailedAddress, Word) + "\n" + Error.what());
   }
 }
 
@@ -108,7 +107,7 @@ void runTest(const std::string &Name, TestFunction Test,
 void testLi(const std::filesystem::path &Path) {
   ExecutionContext Context(64);
   loadProgram(Context, Path, {encodeLi(31, -1)});
-  runSteps(Context, 1);
+  runBlock(Context);
   require(Context.cpu().Registers[31] == 0xFFFFFFFFu, "LI failed");
   require(Context.cpu().PC == 4, "LI did not advance PC");
 }
@@ -117,14 +116,14 @@ void testAdd(const std::filesystem::path &Path) {
   ExecutionContext Context(64);
   loadProgram(Context, Path,
               {encodeLi(1, -1), encodeLi(2, 1), encodeAdd(3, 1, 2)});
-  runSteps(Context, 3);
+  runBlock(Context);
   require(Context.cpu().Registers[3] == 0, "ADD wraparound failed");
 }
 
 void testAddi(const std::filesystem::path &Path) {
   ExecutionContext Context(64);
   loadProgram(Context, Path, {encodeLi(1, 5), encodeAddi(2, 1, -7)});
-  runSteps(Context, 2);
+  runBlock(Context);
   require(Context.cpu().Registers[2] == 0xFFFFFFFEu,
           "ADDI negative immediate failed");
 }
@@ -133,7 +132,7 @@ void testOr(const std::filesystem::path &Path) {
   ExecutionContext Context(64);
   loadProgram(Context, Path,
               {encodeLi(1, 0x0F00), encodeLi(2, 0x00F0), encodeOr(3, 1, 2)});
-  runSteps(Context, 3);
+  runBlock(Context);
   require(Context.cpu().Registers[3] == 0x0FF0, "OR failed");
 }
 
@@ -141,7 +140,7 @@ void testSt(const std::filesystem::path &Path) {
   ExecutionContext Context(128);
   loadProgram(Context, Path,
               {encodeLi(1, 80), encodeLi(2, 0x1234), encodeSt(2, 1, -4)});
-  runSteps(Context, 3);
+  runBlock(Context);
   require(Context.memory().read32(76) == 0x1234, "ST failed");
 }
 
@@ -150,7 +149,7 @@ void testLdImm(const std::filesystem::path &Path) {
   loadProgram(Context, Path,
               {encodeLi(1, 80), encodeLi(2, 0x2345), encodeSt(2, 1, -4),
                encodeLdImm(3, 1, -4)});
-  runSteps(Context, 4);
+  runBlock(Context);
   require(Context.cpu().Registers[3] == 0x2345, "LD immediate failed");
 }
 
@@ -159,7 +158,7 @@ void testLdReg(const std::filesystem::path &Path) {
   loadProgram(Context, Path,
               {encodeLi(1, 80), encodeLi(2, 0x3456), encodeSt(2, 1, 0),
                encodeLi(3, 0), encodeLdReg(4, 1, 3)});
-  runSteps(Context, 5);
+  runBlock(Context);
   require(Context.cpu().Registers[4] == 0x3456, "LD register failed");
 }
 
@@ -168,7 +167,7 @@ void testStp(const std::filesystem::path &Path) {
   loadProgram(Context, Path,
               {encodeLi(1, 80), encodeLi(2, 0x1111), encodeLi(3, 0x2222),
                encodeStp(2, 3, 1, 4)});
-  runSteps(Context, 4);
+  runBlock(Context);
   require(Context.memory().read32(84) == 0x1111, "STP first word failed");
   require(Context.memory().read32(88) == 0x2222, "STP second word failed");
 }
@@ -177,20 +176,20 @@ void testBeq(const std::filesystem::path &Path) {
   ExecutionContext Taken(64);
   loadProgram(Taken, Path,
               {encodeLi(1, 7), encodeLi(2, 7), encodeBeq(1, 2, 2)});
-  runSteps(Taken, 3);
+  runBlock(Taken);
   require(Taken.cpu().PC == 16, "BEQ taken failed");
 
   ExecutionContext NotTaken(64);
   loadProgram(NotTaken, Path,
               {encodeLi(1, 7), encodeLi(2, 8), encodeBeq(1, 2, 2)});
-  runSteps(NotTaken, 3);
+  runBlock(NotTaken);
   require(NotTaken.cpu().PC == 12, "BEQ not taken failed");
 }
 
 void testJ(const std::filesystem::path &Path) {
   ExecutionContext Context(64);
   loadProgram(Context, Path, {encodeJ(5)});
-  runSteps(Context, 1);
+  runBlock(Context);
   require(Context.cpu().PC == 20, "J failed");
 }
 
@@ -198,7 +197,7 @@ void testClz(const std::filesystem::path &Path) {
   ExecutionContext Context(64);
   loadProgram(Context, Path,
               {encodeClz(1, 0), encodeLi(2, 1), encodeClz(3, 2)});
-  runSteps(Context, 3);
+  runBlock(Context);
   require(Context.cpu().Registers[1] == 32, "CLZ zero failed");
   require(Context.cpu().Registers[3] == 31, "CLZ one failed");
 }
@@ -208,7 +207,7 @@ void testSsat(const std::filesystem::path &Path) {
   loadProgram(Context, Path,
               {encodeLi(1, 200), encodeSsat(2, 1, 8), encodeLi(3, -200),
                encodeSsat(4, 3, 8)});
-  runSteps(Context, 4);
+  runBlock(Context);
   require(Context.cpu().Registers[2] == 127, "SSAT upper bound failed");
   require(Context.cpu().Registers[4] == 0xFFFFFF80u, "SSAT lower bound failed");
 }
@@ -218,7 +217,7 @@ void testRori(const std::filesystem::path &Path) {
   loadProgram(Context, Path,
               {encodeLi(1, 1), encodeRori(2, 1, 1), encodeRori(3, 1, 0),
                encodeRori(4, 1, 31)});
-  runSteps(Context, 4);
+  runBlock(Context);
   require(Context.cpu().Registers[2] == 0x80000000u, "RORI one failed");
   require(Context.cpu().Registers[3] == 1, "RORI zero failed");
   require(Context.cpu().Registers[4] == 2, "RORI 31 failed");
@@ -228,7 +227,7 @@ void testBext(const std::filesystem::path &Path) {
   ExecutionContext Context(64);
   loadProgram(Context, Path,
               {encodeLi(1, 0x00D6), encodeLi(2, 0x00AC), encodeBext(3, 1, 2)});
-  runSteps(Context, 3);
+  runBlock(Context);
   require(Context.cpu().Registers[3] == 9, "BEXT failed");
 }
 
@@ -236,7 +235,7 @@ void testSyscall(const std::filesystem::path &Path) {
   ExecutionContext Context(64);
   loadProgram(Context, Path,
               {encodeLi(8, 60), encodeLi(0, 42), encodeSyscall()});
-  runSteps(Context, 3);
+  runBlock(Context);
   require(Context.state().Status == ExecutionStatus::HALTED,
           "SYSCALL did not halt");
   require(Context.state().ExitCode == 42, "SYSCALL returned wrong exit code");
