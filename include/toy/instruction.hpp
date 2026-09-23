@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <vector>
 
+struct TIThreadState;
+using TIExecuteHandler = void (*)(TIThreadState &);
+
 // Internal operation identifiers, not ISA bit encodings.
 enum class TIOpcode : uint8_t {
   INVALID = 0,
@@ -36,4 +39,5 @@ struct Operand {
 struct TIInstruction {
   TIOpcode OpCode = TIOpcode::INVALID;
   std::vector<Operand> Operands{};
+  TIExecuteHandler Execute = nullptr;
 };

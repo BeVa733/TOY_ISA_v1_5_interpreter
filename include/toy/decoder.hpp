@@ -1,6 +1,6 @@
 #pragma once
 
-#include "instruction.hpp"
+#include "executor.hpp"
 
 #include <vector>
 
@@ -174,7 +174,7 @@ inline TIInstruction decodeStp(uint32_t Word) {
   uint32_t Rt2    = (Word >> 11) & 0x1F;
   uint32_t Offset = signExtendImmediate(Word & 0x07FF, 11);
 
-	return {
+  return {
       TIOpcode::STP,
       {{OperandType::REGISTER, Rt1},
              {OperandType::REGISTER, Rt2},
@@ -190,12 +190,14 @@ public:
   TIInstruction decode(uint32_t Word) {
     for (auto It = DecodeVector.begin(); It != DecodeVector.end(); ++It) {
       if ((Word & It->Mask) == It->Reference) {
-        return It->Handler(Word);
+        TIInstruction Instruction = It->Handler(Word);
+        Instruction.Execute       = getExecuteHandler(Instruction.OpCode);
+        return Instruction;
       }
     }
 
-		return {TIOpcode::INVALID, {}};
-	}
+    return {TIOpcode::INVALID, {}, getExecuteHandler(TIOpcode::INVALID)};
+  }
 
 private:
 

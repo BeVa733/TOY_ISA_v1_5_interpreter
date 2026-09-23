@@ -38,5 +38,4 @@ private:
   TISyscallEmulator SyscallEmulator{};
 
   void executeBlock(const TIBasicBlock &Block);
-  void execute(const TIInstruction &Inst);
 };

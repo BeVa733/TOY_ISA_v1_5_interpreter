@@ -60,7 +60,7 @@ void ExecutionContext::loadBinary(const std::string &Filename,
     uint32_t Address = static_cast<uint32_t>(LoadAddress + Offset);
     Memory.write32(Address, Word);
   }
-  
+
   Memory.protectInstructionRange(LoadAddress, Buffer.size());
 
   Cpu.PC = LoadAddress;
@@ -80,10 +80,14 @@ void ExecutionContext::run() {
 }
 
 void ExecutionContext::executeBlock(const TIBasicBlock &Block) {
-  for (const TIInstruction &Instruction : Block.instructions()) {
-    execute(Instruction);
-    if (State.Status != ExecutionStatus::RUNNING) {
-      return;
-    }
+  const auto &Instructions = Block.instructions();
+  TIThreadState Thread(Cpu, Memory, State, SyscallEmulator, Instructions.data(),
+                       Instructions.data() + Instructions.size());
+
+  try {
+    Thread.Current->Execute(Thread);
+  } catch (const SimulationException &) {
+    State.fault();
+    throw;
   }
 }
