@@ -20,7 +20,9 @@ int main(int ArgumentCount, char *Arguments[]) {
     ExecutionContext Context(MEMORY_SIZE);
     Context.loadBinary(Arguments[1]);
     Context.run();
-    return static_cast<int>(Context.state().ExitCode);
+    std::cout << "Process ended with exit code: " +
+                     std::to_string(Context.state().ExitCode) + "\n";
+    return 0;
   } catch (const std::exception &Error) {
     std::cerr << Error.what() << '\n';
     return 1;
