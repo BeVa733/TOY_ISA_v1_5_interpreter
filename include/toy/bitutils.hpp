@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 
 #include "toy_constants.hpp"
 
@@ -43,4 +44,29 @@ inline constexpr uint32_t signExtend(uint32_t Value, uint32_t Width) {
   }
 
   return Value;
+}
+
+inline uint32_t decodeLittleEndianWord(const uint8_t *Data) {
+  assert(Data != nullptr && "Cannot decode a word from a null pointer");
+
+  uint32_t Value = 0;
+  std::memcpy(&Value, Data, TI32::WORD_SIZE);
+
+#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) &&                \
+    __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  Value = __builtin_bswap32(Value);
+#endif
+
+  return Value;
+}
+
+inline void encodeLittleEndianWord(uint8_t *Data, uint32_t Value) {
+  assert(Data != nullptr && "Cannot encode a word to a null pointer");
+
+#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) &&                \
+    __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  Value = __builtin_bswap32(Value);
+#endif
+
+  std::memcpy(Data, &Value, TI32::WORD_SIZE);
 }

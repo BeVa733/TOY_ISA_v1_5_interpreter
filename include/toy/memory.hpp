@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "bitutils.hpp"
 #include "execution_state.hpp"
 #include "toy_constants.hpp"
 
@@ -70,21 +71,13 @@ public:
   uint32_t read32(uint32_t Address) const {
     TIConstMemoryRange Range = readableRange(Address, TI32::WORD_SIZE);
     checkAlignment(Address);
-
-    return (static_cast<uint32_t>(Range.Data[0])) |
-           (static_cast<uint32_t>(Range.Data[1]) << 8) |
-           (static_cast<uint32_t>(Range.Data[2]) << 16) |
-           (static_cast<uint32_t>(Range.Data[3]) << 24);
+    return decodeLittleEndianWord(Range.Data);
   }
 
   void write32(uint32_t Address, uint32_t Value) {
     TIMemoryRange Range = writableRange(Address, TI32::WORD_SIZE);
     checkAlignment(Address);
-
-    Range.Data[0] = static_cast<uint8_t>(Value & 0xFF);
-    Range.Data[1] = static_cast<uint8_t>((Value >> 8) & 0xFF);
-    Range.Data[2] = static_cast<uint8_t>((Value >> 16) & 0xFF);
-    Range.Data[3] = static_cast<uint8_t>((Value >> 24) & 0xFF);
+    encodeLittleEndianWord(Range.Data, Value);
   }
 
 private:
