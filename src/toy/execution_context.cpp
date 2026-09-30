@@ -1,8 +1,8 @@
 #include "../../include/toy/execution_context.hpp"
 #include "../../include/toy/toy_constants.hpp"
 
+#include <cstddef>
 #include <fstream>
-#include <vector>
 
 void ExecutionContext::loadBinary(const std::string &Filename,
                                   uint32_t LoadAddress) {
@@ -35,16 +35,8 @@ void ExecutionContext::loadBinary(const std::string &Filename,
 
   File.seekg(0, std::ios::beg);
 
-  std::vector<unsigned char> Buffer(FileSize, 0);
-  if (!File.read(reinterpret_cast<char *>(Buffer.data()),
-                 static_cast<std::streamsize>(Buffer.size()))) {
-    throw SimulationException(ErrorCode::INCORRECT_BINARY_FILE,
-                              "[LOADER] Cannot read complete binary: " +
-                                  Filename);
-  }
-
-  if (LoadAddress > Memory.size() ||
-      Buffer.size() > Memory.size() - LoadAddress) {
+  std::size_t ByteCount = FileSize;
+  if (LoadAddress > Memory.size() || ByteCount > Memory.size() - LoadAddress) {
     throw SimulationException(
         ErrorCode::MEMORY_OUT_OF_BOUNDS,
         "[LOADER] Binary does not fit in memory at load address: " +
@@ -52,18 +44,16 @@ void ExecutionContext::loadBinary(const std::string &Filename,
   }
 
   Memory.clearInstructionProtection();
+  TIMemoryRange Program = Memory.writableRange(LoadAddress, ByteCount);
 
-  for (std::size_t Offset = 0; Offset < Buffer.size();
-       Offset += TI32::WORD_SIZE) {
-    uint32_t Word    = static_cast<uint32_t>(Buffer[Offset]) |
-                       (static_cast<uint32_t>(Buffer[Offset + 1]) << 8) |
-                       (static_cast<uint32_t>(Buffer[Offset + 2]) << 16) |
-                       (static_cast<uint32_t>(Buffer[Offset + 3]) << 24);
-    uint32_t Address = static_cast<uint32_t>(LoadAddress + Offset);
-    Memory.write32(Address, Word);
+  if (!File.read(reinterpret_cast<char *>(Program.Data),
+                 static_cast<std::streamsize>(Program.Size))) {
+    throw SimulationException(ErrorCode::INCORRECT_BINARY_FILE,
+                              "[LOADER] Cannot read complete binary: " +
+                                  Filename);
   }
 
-  Memory.protectInstructionRange(LoadAddress, Buffer.size());
+  Memory.protectInstructionRange(LoadAddress, ByteCount);
 
   Cpu.PC = LoadAddress;
   State.reset();
