@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bitutils.hpp"
 #include "executor.hpp"
 
 #include <vector>
@@ -8,22 +9,10 @@ namespace {
 
 // Decode handlers for each opcode
 
-inline uint32_t signExtendImmediate(uint32_t Value, uint32_t Width) {
-  uint32_t SignBit = uint32_t{1} << (Width - 1);
-  uint32_t Mask    = (uint32_t{1} << Width) - 1;
-
-  Value &= Mask;
-  if ((Value & SignBit) != 0) {
-    Value |= ~Mask;
-  }
-
-  return Value;
-}
-
 inline TIInstruction decodeSt(uint32_t Word) {
-  uint32_t Base      = (Word >> 21) & 0x1F;
-  uint32_t Rt        = (Word >> 16) & 0x1F;
-  uint32_t Immediate = signExtendImmediate(Word & 0x3FFF, 14);
+  uint32_t Base      = extractBits(Word, 21, 5);
+  uint32_t Rt        = extractBits(Word, 16, 5);
+  uint32_t Immediate = signExtend(extractBits(Word, 0, 14), 14);
   return {
       TIOpcode::ST,
       {{OperandType::REGISTER, Rt},
@@ -33,9 +22,9 @@ inline TIInstruction decodeSt(uint32_t Word) {
 }
 
 inline TIInstruction decodeAddi(uint32_t Word) {
-  uint32_t Rs        = (Word >> 21) & 0x1F;
-  uint32_t Rt        = (Word >> 16) & 0x1F;
-  uint32_t Immediate = signExtendImmediate(Word & 0xFFFF, 16);
+  uint32_t Rs        = extractBits(Word, 21, 5);
+  uint32_t Rt        = extractBits(Word, 16, 5);
+  uint32_t Immediate = signExtend(extractBits(Word, 0, 16), 16);
   return {
       TIOpcode::ADDI,
       {{OperandType::REGISTER, Rt},
@@ -45,9 +34,9 @@ inline TIInstruction decodeAddi(uint32_t Word) {
 }
 
 inline TIInstruction decodeOr(uint32_t Word) {
-  uint32_t Rs = (Word >> 21) & 0x1F;
-  uint32_t Rt = (Word >> 16) & 0x1F;
-  uint32_t Rd = (Word >> 11) & 0x1F;
+  uint32_t Rs = extractBits(Word, 21, 5);
+  uint32_t Rt = extractBits(Word, 16, 5);
+  uint32_t Rd = extractBits(Word, 11, 5);
   return {
       TIOpcode::OR,
       {{OperandType::REGISTER, Rd},
@@ -57,9 +46,9 @@ inline TIInstruction decodeOr(uint32_t Word) {
 }
 
 inline TIInstruction decodeLdReg(uint32_t Word) {
-  uint32_t Base = (Word >> 21) & 0x1F;
-  uint32_t Rt   = (Word >> 16) & 0x1F;
-  uint32_t Rm   = Word & 0x1F;
+  uint32_t Base = extractBits(Word, 21, 5);
+  uint32_t Rt   = extractBits(Word, 16, 5);
+  uint32_t Rm   = extractBits(Word, 0, 5);
   return {
       TIOpcode::LDreg,
       {{OperandType::REGISTER, Rt},
@@ -69,14 +58,14 @@ inline TIInstruction decodeLdReg(uint32_t Word) {
 }
 
 inline TIInstruction decodeJ(uint32_t Word) {
-  uint32_t Index = Word & 0x03FFFFFF;
+  uint32_t Index = extractBits(Word, 0, 26);
   return {TIOpcode::J, {{OperandType::IMMEDIATE, Index}}};
 }
 
 inline TIInstruction decodeBeq(uint32_t Word) {
-  uint32_t Rs     = (Word >> 21) & 0x1F;
-  uint32_t Rt     = (Word >> 16) & 0x1F;
-  uint32_t Offset = signExtendImmediate(Word & 0xFFFF, 16);
+  uint32_t Rs     = extractBits(Word, 21, 5);
+  uint32_t Rt     = extractBits(Word, 16, 5);
+  uint32_t Offset = signExtend(extractBits(Word, 0, 16), 16);
   return {
       TIOpcode::BEQ,
       {{OperandType::REGISTER, Rs},
@@ -86,8 +75,8 @@ inline TIInstruction decodeBeq(uint32_t Word) {
 }
 
 inline TIInstruction decodeClz(uint32_t Word) {
-  uint32_t Rd = (Word >> 21) & 0x1F;
-  uint32_t Rs = (Word >> 16) & 0x1F;
+  uint32_t Rd = extractBits(Word, 21, 5);
+  uint32_t Rs = extractBits(Word, 16, 5);
   return {
       TIOpcode::CLZ,
       {{OperandType::REGISTER, Rd}, {OperandType::REGISTER, Rs}}
@@ -95,9 +84,9 @@ inline TIInstruction decodeClz(uint32_t Word) {
 }
 
 inline TIInstruction decodeSsat(uint32_t Word) {
-  uint32_t Rd        = (Word >> 21) & 0x1F;
-  uint32_t Rs        = (Word >> 16) & 0x1F;
-  uint32_t Immediate = (Word >> 11) & 0x1F;
+  uint32_t Rd        = extractBits(Word, 21, 5);
+  uint32_t Rs        = extractBits(Word, 16, 5);
+  uint32_t Immediate = extractBits(Word, 11, 5);
   return {
       TIOpcode::SSAT,
       {{OperandType::REGISTER, Rd},
@@ -107,9 +96,9 @@ inline TIInstruction decodeSsat(uint32_t Word) {
 }
 
 inline TIInstruction decodeLdImm(uint32_t Word) {
-  uint32_t Base      = (Word >> 21) & 0x1F;
-  uint32_t Rt        = (Word >> 16) & 0x1F;
-  uint32_t Immediate = signExtendImmediate(Word & 0x3FFF, 14);
+  uint32_t Base      = extractBits(Word, 21, 5);
+  uint32_t Rt        = extractBits(Word, 16, 5);
+  uint32_t Immediate = signExtend(extractBits(Word, 0, 14), 14);
   return {
       TIOpcode::LDimm,
       {{OperandType::REGISTER, Rt},
@@ -119,9 +108,9 @@ inline TIInstruction decodeLdImm(uint32_t Word) {
 }
 
 inline TIInstruction decodeAdd(uint32_t Word) {
-  uint32_t Rs = (Word >> 21) & 0x1F;
-  uint32_t Rt = (Word >> 16) & 0x1F;
-  uint32_t Rd = (Word >> 11) & 0x1F;
+  uint32_t Rs = extractBits(Word, 21, 5);
+  uint32_t Rt = extractBits(Word, 16, 5);
+  uint32_t Rd = extractBits(Word, 11, 5);
   return {
       TIOpcode::ADD,
       {{OperandType::REGISTER, Rd},
@@ -131,14 +120,14 @@ inline TIInstruction decodeAdd(uint32_t Word) {
 }
 
 inline TIInstruction decodeSyscall(uint32_t Word) {
-  uint32_t Code = (Word >> 6) & 0x000FFFFF;
+  uint32_t Code = extractBits(Word, 6, 20);
   return {TIOpcode::SYSCALL, {{OperandType::IMMEDIATE, Code}}};
 }
 
 inline TIInstruction decodeBext(uint32_t Word) {
-  uint32_t Rd  = (Word >> 21) & 0x1F;
-  uint32_t Rs1 = (Word >> 16) & 0x1F;
-  uint32_t Rs2 = (Word >> 11) & 0x1F;
+  uint32_t Rd  = extractBits(Word, 21, 5);
+  uint32_t Rs1 = extractBits(Word, 16, 5);
+  uint32_t Rs2 = extractBits(Word, 11, 5);
   return {
       TIOpcode::BEXT,
       {{OperandType::REGISTER, Rd},
@@ -148,8 +137,8 @@ inline TIInstruction decodeBext(uint32_t Word) {
 }
 
 inline TIInstruction decodeLi(uint32_t Word) {
-  uint32_t Rt        = (Word >> 16) & 0x1F;
-  uint32_t Immediate = signExtendImmediate(Word & 0xFFFF, 16);
+  uint32_t Rt        = extractBits(Word, 16, 5);
+  uint32_t Immediate = signExtend(extractBits(Word, 0, 16), 16);
   return {
       TIOpcode::LI,
       {{OperandType::REGISTER, Rt}, {OperandType::IMMEDIATE, Immediate}}
@@ -157,9 +146,9 @@ inline TIInstruction decodeLi(uint32_t Word) {
 }
 
 inline TIInstruction decodeRori(uint32_t Word) {
-  uint32_t Rd        = (Word >> 21) & 0x1F;
-  uint32_t Rs        = (Word >> 16) & 0x1F;
-  uint32_t Immediate = (Word >> 11) & 0x1F;
+  uint32_t Rd        = extractBits(Word, 21, 5);
+  uint32_t Rs        = extractBits(Word, 16, 5);
+  uint32_t Immediate = extractBits(Word, 11, 5);
   return {
       TIOpcode::RORI,
       {{OperandType::REGISTER, Rd},
@@ -169,10 +158,10 @@ inline TIInstruction decodeRori(uint32_t Word) {
 }
 
 inline TIInstruction decodeStp(uint32_t Word) {
-  uint32_t Base   = (Word >> 21) & 0x1F;
-  uint32_t Rt1    = (Word >> 16) & 0x1F;
-  uint32_t Rt2    = (Word >> 11) & 0x1F;
-  uint32_t Offset = signExtendImmediate(Word & 0x07FF, 11);
+  uint32_t Base   = extractBits(Word, 21, 5);
+  uint32_t Rt1    = extractBits(Word, 16, 5);
+  uint32_t Rt2    = extractBits(Word, 11, 5);
+  uint32_t Offset = signExtend(extractBits(Word, 0, 11), 11);
 
   return {
       TIOpcode::STP,

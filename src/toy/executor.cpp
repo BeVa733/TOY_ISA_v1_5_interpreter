@@ -51,7 +51,7 @@ uint32_t rotateRight(uint32_t Value, uint32_t Shift) {
   return (Value >> Shift) | (Value << (TI32::WORD_BIT_COUNT - Shift));
 }
 
-uint32_t extractBits(uint32_t Value, uint32_t Mask) {
+uint32_t compressBits(uint32_t Value, uint32_t Mask) {
   uint32_t Result    = 0;
   uint32_t OutputBit = 0;
   for (uint32_t InputBit = 0; InputBit < TI32::WORD_BIT_COUNT; ++InputBit) {
@@ -182,7 +182,7 @@ void executeBext(TIThreadState &Thread) {
   const auto &Operands = Thread.Current->Operands;
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
-      extractBits(Registers[Operands[1].Value], Registers[Operands[2].Value]);
+      compressBits(Registers[Operands[1].Value], Registers[Operands[2].Value]);
   Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
