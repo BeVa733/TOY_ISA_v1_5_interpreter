@@ -1,4 +1,5 @@
 #include "../include/toy/execution_context.hpp"
+#include "../include/toy/toy_constants.hpp"
 #include "encode.hpp"
 
 #include <bitset>
@@ -27,8 +28,10 @@ void writeProgram(const std::filesystem::path &Path,
   require(File.is_open(), "Cannot create instruction test binary");
 
   for (uint32_t Word : Words) {
-    char Bytes[4]{static_cast<char>(Word), static_cast<char>(Word >> 8),
-                  static_cast<char>(Word >> 16), static_cast<char>(Word >> 24)};
+    char Bytes[TI32::WORD_SIZE]{static_cast<char>(Word),
+                                static_cast<char>(Word >> 8),
+                                static_cast<char>(Word >> 16),
+                                static_cast<char>(Word >> 24)};
     File.write(Bytes, sizeof(Bytes));
   }
 
@@ -46,7 +49,7 @@ std::string formatInstruction(uint32_t Address, uint32_t Word) {
   std::ostringstream Message;
   Message << "address=0x" << std::hex << std::setfill('0') << std::setw(8)
           << Address << ", word=0x" << std::setw(8) << Word
-          << ", bits=" << std::bitset<32>(Word);
+          << ", bits=" << std::bitset<TI32::WORD_BIT_COUNT>(Word);
   return Message.str();
 }
 
@@ -74,7 +77,7 @@ void dumpProgram(const std::filesystem::path &Path, std::ostream &Output) {
   Output << "Binary: " << Path << '\n';
   uint32_t Address = 0;
   while (true) {
-    unsigned char Bytes[4]{};
+    unsigned char Bytes[TI32::WORD_SIZE]{};
     File.read(reinterpret_cast<char *>(Bytes), sizeof(Bytes));
     if (File.gcount() == 0) {
       break;
@@ -89,7 +92,7 @@ void dumpProgram(const std::filesystem::path &Path, std::ostream &Output) {
                     (static_cast<uint32_t>(Bytes[2]) << 16) |
                     (static_cast<uint32_t>(Bytes[3]) << 24);
     Output << "  " << formatInstruction(Address, Word) << '\n';
-    Address += 4;
+    Address += TI32::WORD_SIZE;
   }
 }
 
@@ -109,7 +112,8 @@ void testLi(const std::filesystem::path &Path) {
   loadProgram(Context, Path, {encodeLi(31, -1)});
   runBlock(Context);
   require(Context.cpu().Registers[31] == 0xFFFFFFFFu, "LI failed");
-  require(Context.cpu().PC == 4, "LI did not advance PC");
+  require(Context.cpu().PC == TI32::INSTRUCTION_SIZE,
+          "LI did not advance PC");
 }
 
 void testAdd(const std::filesystem::path &Path) {
@@ -198,7 +202,8 @@ void testClz(const std::filesystem::path &Path) {
   loadProgram(Context, Path,
               {encodeClz(1, 0), encodeLi(2, 1), encodeClz(3, 2)});
   runBlock(Context);
-  require(Context.cpu().Registers[1] == 32, "CLZ zero failed");
+  require(Context.cpu().Registers[1] == TI32::WORD_BIT_COUNT,
+          "CLZ zero failed");
   require(Context.cpu().Registers[3] == 31, "CLZ one failed");
 }
 

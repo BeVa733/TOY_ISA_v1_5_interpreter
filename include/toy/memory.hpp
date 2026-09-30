@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "execution_state.hpp"
+#include "toy_constants.hpp"
 
 class TIMemory {
 public:
@@ -18,7 +19,7 @@ public:
   /// Return true if instruction belongs to instruction range
   bool containsInstruction(uint32_t Address) const {
     uint64_t Begin = Address;
-    uint64_t End   = static_cast<uint64_t>(Address) + 4;
+    uint64_t End   = static_cast<uint64_t>(Address) + TI32::INSTRUCTION_SIZE;
     return InstructionProtectionEnabled_ && Begin >= InstructionBegin_ &&
            End <= InstructionEnd_;
   }
@@ -59,7 +60,7 @@ public:
 
   uint32_t read32(uint32_t Address) const {
 
-    checkBounds(Address, 4);
+    checkBounds(Address, TI32::WORD_SIZE);
     checkAlignment(Address);
 
     return (static_cast<uint32_t>(Bytes[Address])) |
@@ -70,9 +71,9 @@ public:
 
   void write32(uint32_t Address, uint32_t Value) {
 
-    checkBounds(Address, 4);
+    checkBounds(Address, TI32::WORD_SIZE);
     checkAlignment(Address);
-    checkWritable(Address, 4);
+    checkWritable(Address, TI32::WORD_SIZE);
 
     Bytes[Address]     = static_cast<uint8_t>(Value & 0xFF);
     Bytes[Address + 1] = static_cast<uint8_t>((Value >> 8) & 0xFF);
@@ -82,11 +83,11 @@ public:
 
   /// Store two words
   void writePair32(uint32_t Address, uint32_t First, uint32_t Second) {
-    checkBounds(Address, 8);
+    checkBounds(Address, 2 * TI32::WORD_SIZE);
     checkAlignment(Address);
-    checkWritable(Address, 8);
+    checkWritable(Address, 2 * TI32::WORD_SIZE);
     write32(Address, First);
-    write32(Address + 4, Second);
+    write32(Address + TI32::WORD_SIZE, Second);
   }
 
 private:
@@ -96,7 +97,8 @@ private:
   bool InstructionProtectionEnabled_ = false;
 
   void checkBounds(uint32_t Address, std::size_t ByteCount) const {
-    constexpr uint64_t ADDRESS_SPACE_SIZE = uint64_t{1} << 32;
+    constexpr uint64_t ADDRESS_SPACE_SIZE =
+        uint64_t{1} << TI32::WORD_BIT_COUNT;
     if (Address > Bytes.size() || ByteCount > Bytes.size() - Address ||
         ByteCount > ADDRESS_SPACE_SIZE - Address) {
       throw SimulationException(
@@ -107,7 +109,7 @@ private:
   }
 
   void checkAlignment(uint32_t Address) const {
-    if (Address % 4 != 0) {
+    if (Address % TI32::WORD_SIZE != 0) {
       throw SimulationException(ErrorCode::MISALIGNED_ACCESS,
                                 "[MEMORY] Error: misaligned access at " +
                                     std::to_string(Address));

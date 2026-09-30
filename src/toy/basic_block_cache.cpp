@@ -1,4 +1,5 @@
 #include "../../include/toy/basic_block_cache.hpp"
+#include "../../include/toy/toy_constants.hpp"
 
 #include <utility>
 
@@ -17,14 +18,15 @@ TIBasicBlock &TIBasicBlockCache::decodeBlock(uint32_t Address,
       break;
     }
 
-    CurrentAddress += 4;
+    CurrentAddress += TI32::INSTRUCTION_SIZE;
 
     if (Memory.hasInstructionRange() &&
         !Memory.containsInstruction(CurrentAddress)) {
       break;
     }
 
-    if (static_cast<uint64_t>(CurrentAddress) + 4 > Memory.size()) {
+    if (static_cast<uint64_t>(CurrentAddress) + TI32::INSTRUCTION_SIZE >
+        Memory.size()) {
       break;
     }
   }

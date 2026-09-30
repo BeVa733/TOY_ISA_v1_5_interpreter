@@ -1,4 +1,5 @@
 #include "../../include/toy/executor.hpp"
+#include "../../include/toy/toy_constants.hpp"
 
 #if !defined(__clang__)
 #error "Threaded execution with [[clang::musttail]] requires Clang"
@@ -23,14 +24,14 @@ uint32_t countLeadingZeros(uint32_t Value) {
 }
 
 uint32_t saturateSigned(uint32_t Value, uint32_t Width) {
-  if (Width == 0 || Width > 31) {
+  if (Width == 0 || Width >= TI32::WORD_BIT_COUNT) {
     throw SimulationException(ErrorCode::INVALID_INSTRUCTION,
                               "[EXECUTE] SSAT width must be in range 1..31");
   }
 
   int64_t SignedValue = Value;
-  if ((Value & 0x80000000) != 0) {
-    SignedValue -= int64_t{1} << 32;
+  if ((Value & (uint32_t{1} << (TI32::WORD_BIT_COUNT - 1))) != 0) {
+    SignedValue -= int64_t{1} << TI32::WORD_BIT_COUNT;
   }
 
   int64_t Minimum = -(int64_t{1} << (Width - 1));
@@ -47,13 +48,13 @@ uint32_t rotateRight(uint32_t Value, uint32_t Shift) {
   if (Shift == 0) {
     return Value;
   }
-  return (Value >> Shift) | (Value << (32 - Shift));
+  return (Value >> Shift) | (Value << (TI32::WORD_BIT_COUNT - Shift));
 }
 
 uint32_t extractBits(uint32_t Value, uint32_t Mask) {
   uint32_t Result    = 0;
   uint32_t OutputBit = 0;
-  for (uint32_t InputBit = 0; InputBit < 32; ++InputBit) {
+  for (uint32_t InputBit = 0; InputBit < TI32::WORD_BIT_COUNT; ++InputBit) {
     if ((Mask & (uint32_t{1} << InputBit)) != 0) {
       Result |= ((Value >> InputBit) & 0x01) << OutputBit;
       ++OutputBit;
@@ -65,7 +66,7 @@ uint32_t extractBits(uint32_t Value, uint32_t Mask) {
 void executeLi(TIThreadState &Thread) {
   const auto &Operands                    = Thread.Current->Operands;
   Thread.Cpu.Registers[Operands[0].Value] = Operands[1].Value;
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -74,7 +75,7 @@ void executeAdd(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       Registers[Operands[1].Value] + Registers[Operands[2].Value];
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -83,7 +84,7 @@ void executeAddi(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       Registers[Operands[1].Value] + Operands[2].Value;
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -92,7 +93,7 @@ void executeOr(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       Registers[Operands[1].Value] | Registers[Operands[2].Value];
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -102,7 +103,7 @@ void executeLdReg(TIThreadState &Thread) {
   uint32_t Address =
       Registers[Operands[1].Value] + Registers[Operands[2].Value];
   Registers[Operands[0].Value] = Thread.Memory.read32(Address);
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -111,7 +112,7 @@ void executeLdImm(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   uint32_t Address     = Registers[Operands[1].Value] + Operands[2].Value;
   Registers[Operands[0].Value] = Thread.Memory.read32(Address);
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -120,7 +121,7 @@ void executeSt(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   uint32_t Address     = Registers[Operands[1].Value] + Operands[2].Value;
   Thread.Memory.write32(Address, Registers[Operands[0].Value]);
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -130,7 +131,7 @@ void executeStp(TIThreadState &Thread) {
   uint32_t Address     = Registers[Operands[2].Value] + Operands[3].Value;
   Thread.Memory.writePair32(Address, Registers[Operands[0].Value],
                             Registers[Operands[1].Value]);
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -138,15 +139,16 @@ void executeBeq(TIThreadState &Thread) {
   const auto &Operands = Thread.Current->Operands;
   auto &Registers      = Thread.Cpu.Registers;
   if (Registers[Operands[0].Value] == Registers[Operands[1].Value]) {
-    Thread.Cpu.PC += Operands[2].Value << 2;
+    Thread.Cpu.PC += Operands[2].Value * TI32::INSTRUCTION_SIZE;
   } else {
-    Thread.Cpu.PC += 4;
+    Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   }
 }
 
 void executeJ(TIThreadState &Thread) {
   const auto &Operands = Thread.Current->Operands;
-  Thread.Cpu.PC = (Thread.Cpu.PC & 0xF0000000) | (Operands[0].Value << 2);
+  Thread.Cpu.PC = (Thread.Cpu.PC & 0xF0000000) |
+                  (Operands[0].Value * TI32::INSTRUCTION_SIZE);
 }
 
 void executeClz(TIThreadState &Thread) {
@@ -154,7 +156,7 @@ void executeClz(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       countLeadingZeros(Registers[Operands[1].Value]);
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -163,7 +165,7 @@ void executeSsat(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       saturateSigned(Registers[Operands[1].Value], Operands[2].Value);
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -172,7 +174,7 @@ void executeRori(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       rotateRight(Registers[Operands[1].Value], Operands[2].Value);
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -181,14 +183,14 @@ void executeBext(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       extractBits(Registers[Operands[1].Value], Registers[Operands[2].Value]);
-  Thread.Cpu.PC += 4;
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
 void executeSyscall(TIThreadState &Thread) {
   Thread.SyscallEmulator.execute(Thread.Cpu, Thread.Memory, Thread.State);
   if (Thread.State.Status == ExecutionStatus::RUNNING) {
-    Thread.Cpu.PC += 4;
+    Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   }
 }
 

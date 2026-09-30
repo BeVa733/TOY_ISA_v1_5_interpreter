@@ -1,4 +1,5 @@
 #include "../../include/toy/execution_context.hpp"
+#include "../../include/toy/toy_constants.hpp"
 
 #include <fstream>
 #include <vector>
@@ -19,14 +20,14 @@ void ExecutionContext::loadBinary(const std::string &Filename,
   }
 
   std::streamoff FileSize = EndPosition - std::ifstream::pos_type(0);
-  if (FileSize <= 0 || FileSize % 4 != 0) {
+  if (FileSize <= 0 || FileSize % TI32::WORD_SIZE != 0) {
     throw SimulationException(
         ErrorCode::INCORRECT_BINARY_FILE,
         "[LOADER] Binary must contain a nonzero multiple of 4 bytes: " +
             Filename);
   }
 
-  if (LoadAddress % 4 != 0) {
+  if (LoadAddress % TI32::WORD_SIZE != 0) {
     throw SimulationException(ErrorCode::MISALIGNED_ACCESS,
                               "[LOADER] Misaligned load address: " +
                                   std::to_string(LoadAddress));
@@ -52,7 +53,8 @@ void ExecutionContext::loadBinary(const std::string &Filename,
 
   Memory.clearInstructionProtection();
 
-  for (std::size_t Offset = 0; Offset < Buffer.size(); Offset += 4) {
+  for (std::size_t Offset = 0; Offset < Buffer.size();
+       Offset += TI32::WORD_SIZE) {
     uint32_t Word    = static_cast<uint32_t>(Buffer[Offset]) |
                        (static_cast<uint32_t>(Buffer[Offset + 1]) << 8) |
                        (static_cast<uint32_t>(Buffer[Offset + 2]) << 16) |
