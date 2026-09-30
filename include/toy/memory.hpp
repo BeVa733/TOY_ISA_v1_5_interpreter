@@ -7,6 +7,18 @@
 #include "execution_state.hpp"
 #include "toy_constants.hpp"
 
+/// Non-owning read-only byte range in guest memory.
+struct TIConstMemoryRange {
+  const uint8_t *Data = nullptr;
+  std::size_t Size    = 0;
+};
+
+/// Non-owning writable byte range in guest memory.
+struct TIMemoryRange {
+  uint8_t *Data    = nullptr;
+  std::size_t Size = 0;
+};
+
 class TIMemory {
 public:
   explicit TIMemory(std::size_t SizeBytes) : Bytes(SizeBytes, 0) {}
@@ -39,46 +51,40 @@ public:
     InstructionProtectionEnabled_ = false;
   }
 
-  /// Copy an arbitrary byte range from guest memory.
-  std::vector<uint8_t> readBytes(uint32_t Address,
-                                 std::size_t ByteCount) const {
+  /// Return a checked read-only range valid while this memory is not moved.
+  TIConstMemoryRange readableRange(uint32_t Address,
+                                   std::size_t ByteCount) const {
     checkBounds(Address, ByteCount);
-
-    auto Begin = Bytes.begin() + Address;
-    return {Begin, Begin + ByteCount};
+    const uint8_t *Data = ByteCount == 0 ? nullptr : Bytes.data() + Address;
+    return {Data, ByteCount};
   }
 
-  /// Copy bytes into guest memory. Byte accesses do not require alignment.
-  void writeBytes(uint32_t Address, const std::vector<uint8_t> &Data) {
-    checkBounds(Address, Data.size());
-    checkWritable(Address, Data.size());
-
-    for (std::size_t Index = 0; Index < Data.size(); ++Index) {
-      Bytes[Address + Index] = Data[Index];
-    }
+  /// Return a checked writable range valid while this memory is not moved.
+  TIMemoryRange writableRange(uint32_t Address, std::size_t ByteCount) {
+    checkBounds(Address, ByteCount);
+    checkWritable(Address, ByteCount);
+    uint8_t *Data = ByteCount == 0 ? nullptr : Bytes.data() + Address;
+    return {Data, ByteCount};
   }
 
   uint32_t read32(uint32_t Address) const {
-
-    checkBounds(Address, TI32::WORD_SIZE);
+    TIConstMemoryRange Range = readableRange(Address, TI32::WORD_SIZE);
     checkAlignment(Address);
 
-    return (static_cast<uint32_t>(Bytes[Address])) |
-           (static_cast<uint32_t>(Bytes[Address + 1]) << 8) |
-           (static_cast<uint32_t>(Bytes[Address + 2]) << 16) |
-           (static_cast<uint32_t>(Bytes[Address + 3]) << 24);
+    return (static_cast<uint32_t>(Range.Data[0])) |
+           (static_cast<uint32_t>(Range.Data[1]) << 8) |
+           (static_cast<uint32_t>(Range.Data[2]) << 16) |
+           (static_cast<uint32_t>(Range.Data[3]) << 24);
   }
 
   void write32(uint32_t Address, uint32_t Value) {
-
-    checkBounds(Address, TI32::WORD_SIZE);
+    TIMemoryRange Range = writableRange(Address, TI32::WORD_SIZE);
     checkAlignment(Address);
-    checkWritable(Address, TI32::WORD_SIZE);
 
-    Bytes[Address]     = static_cast<uint8_t>(Value & 0xFF);
-    Bytes[Address + 1] = static_cast<uint8_t>((Value >> 8) & 0xFF);
-    Bytes[Address + 2] = static_cast<uint8_t>((Value >> 16) & 0xFF);
-    Bytes[Address + 3] = static_cast<uint8_t>((Value >> 24) & 0xFF);
+    Range.Data[0] = static_cast<uint8_t>(Value & 0xFF);
+    Range.Data[1] = static_cast<uint8_t>((Value >> 8) & 0xFF);
+    Range.Data[2] = static_cast<uint8_t>((Value >> 16) & 0xFF);
+    Range.Data[3] = static_cast<uint8_t>((Value >> 24) & 0xFF);
   }
 
 private:
@@ -88,8 +94,7 @@ private:
   bool InstructionProtectionEnabled_ = false;
 
   void checkBounds(uint32_t Address, std::size_t ByteCount) const {
-    constexpr uint64_t ADDRESS_SPACE_SIZE =
-        uint64_t{1} << TI32::WORD_BIT_COUNT;
+    constexpr uint64_t ADDRESS_SPACE_SIZE = uint64_t{1} << TI32::WORD_BIT_COUNT;
     if (Address > Bytes.size() || ByteCount > Bytes.size() - Address ||
         ByteCount > ADDRESS_SPACE_SIZE - Address) {
       throw SimulationException(

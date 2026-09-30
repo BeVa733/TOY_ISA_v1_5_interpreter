@@ -35,17 +35,14 @@ void TISyscallEmulator::handleRead(TICpuState &Cpu, TIMemory &Memory,
     return;
   }
 
-  std::vector<uint8_t> Buffer = Memory.readBytes(Address, ByteCount);
-  ssize_t Result =
-      read(STDIN_FILENO, Buffer.data(), static_cast<std::size_t>(ByteCount));
+  TIMemoryRange Buffer = Memory.writableRange(Address, ByteCount);
+  ssize_t Result       = read(STDIN_FILENO, Buffer.Data, Buffer.Size);
 
   if (Result < 0) {
     Cpu.Registers[0] = syscallError();
     return;
   }
 
-  Buffer.resize(static_cast<std::size_t>(Result));
-  Memory.writeBytes(Address, Buffer);
   Cpu.Registers[0] = static_cast<uint32_t>(Result);
 }
 
@@ -61,9 +58,9 @@ void TISyscallEmulator::handleWrite(TICpuState &Cpu, TIMemory &Memory,
     return;
   }
 
-  std::vector<uint8_t> Buffer = Memory.readBytes(Address, ByteCount);
-  ssize_t Result = write(static_cast<int>(GuestFileDescriptor), Buffer.data(),
-                         static_cast<std::size_t>(ByteCount));
+  TIConstMemoryRange Buffer = Memory.readableRange(Address, ByteCount);
+  ssize_t Result =
+      write(static_cast<int>(GuestFileDescriptor), Buffer.Data, Buffer.Size);
 
   Cpu.Registers[0] =
       Result < 0 ? syscallError() : static_cast<uint32_t>(Result);
