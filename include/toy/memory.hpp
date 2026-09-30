@@ -81,15 +81,6 @@ public:
     Bytes[Address + 3] = static_cast<uint8_t>((Value >> 24) & 0xFF);
   }
 
-  /// Store two words
-  void writePair32(uint32_t Address, uint32_t First, uint32_t Second) {
-    checkBounds(Address, 2 * TI32::WORD_SIZE);
-    checkAlignment(Address);
-    checkWritable(Address, 2 * TI32::WORD_SIZE);
-    write32(Address, First);
-    write32(Address + TI32::WORD_SIZE, Second);
-  }
-
 private:
   std::vector<uint8_t> Bytes{};
   uint64_t InstructionBegin_         = 0;

@@ -129,8 +129,10 @@ void executeStp(TIThreadState &Thread) {
   const auto &Operands = Thread.Current->Operands;
   auto &Registers      = Thread.Cpu.Registers;
   uint32_t Address     = Registers[Operands[2].Value] + Operands[3].Value;
-  Thread.Memory.writePair32(Address, Registers[Operands[0].Value],
-                            Registers[Operands[1].Value]);
+
+  Thread.Memory.write32(Address, Registers[Operands[0].Value]);
+  Thread.Memory.write32(Address + TI32::WORD_SIZE, Registers[Operands[1].Value]);
+
   Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }

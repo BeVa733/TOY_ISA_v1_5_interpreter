@@ -22,7 +22,7 @@ private:
   static void handleExit(TICpuState &Cpu, TIMemory &Memory,
                          TIExecutionState &State);
 
-  const std::unordered_map<uint32_t, Handler> Handlers{
+  inline static const std::unordered_map<uint32_t, Handler> Handlers{
       {0,  handleRead },
       {1,  handleWrite},
       {60, handleExit }
