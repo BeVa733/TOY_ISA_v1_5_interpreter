@@ -29,19 +29,15 @@ uint32_t saturateSigned(uint32_t Value, uint32_t Width) {
                               "[EXECUTE] SSAT width must be in range 1..31");
   }
 
-  int64_t SignedValue = Value;
-  if ((Value & (uint32_t{1} << (TI32::WORD_BIT_COUNT - 1))) != 0) {
-    SignedValue -= int64_t{1} << TI32::WORD_BIT_COUNT;
+  uint32_t Maximum = makeMask(Width - 1); // -1 because without sign bit
+  uint32_t Minimum = ~Maximum;
+  uint32_t SignBit = uint32_t{1} << (TI32::WORD_BIT_COUNT - 1);
+
+  if ((Value & SignBit) == 0) {
+    return Value > Maximum ? Maximum : Value;
   }
 
-  int64_t Minimum = -(int64_t{1} << (Width - 1));
-  int64_t Maximum = (int64_t{1} << (Width - 1)) - 1;
-  if (SignedValue < Minimum) {
-    SignedValue = Minimum;
-  } else if (SignedValue > Maximum) {
-    SignedValue = Maximum;
-  }
-  return static_cast<uint32_t>(SignedValue);
+  return Value < Minimum ? Minimum : Value;
 }
 
 uint32_t rotateRight(uint32_t Value, uint32_t Shift) {
@@ -131,7 +127,8 @@ void executeStp(TIThreadState &Thread) {
   uint32_t Address     = Registers[Operands[2].Value] + Operands[3].Value;
 
   Thread.Memory.write32(Address, Registers[Operands[0].Value]);
-  Thread.Memory.write32(Address + TI32::WORD_SIZE, Registers[Operands[1].Value]);
+  Thread.Memory.write32(Address + TI32::WORD_SIZE,
+                        Registers[Operands[1].Value]);
 
   Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
@@ -149,8 +146,8 @@ void executeBeq(TIThreadState &Thread) {
 
 void executeJ(TIThreadState &Thread) {
   const auto &Operands = Thread.Current->Operands;
-  Thread.Cpu.PC = (Thread.Cpu.PC & 0xF0000000) |
-                  (Operands[0].Value * TI32::INSTRUCTION_SIZE);
+  Thread.Cpu.PC        = (Thread.Cpu.PC & 0xF0000000) |
+                         (Operands[0].Value * TI32::INSTRUCTION_SIZE);
 }
 
 void executeClz(TIThreadState &Thread) {
