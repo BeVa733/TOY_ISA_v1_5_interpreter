@@ -15,7 +15,7 @@ chmod +x assembler/toy_as.rb
 ```bash
 ./assembler/toy_as.rb <source_filename> [binary_filename] # ассемблер
 
-./build/interpreter <source_binary_filename>    # Интерпретатор
+./build/interpreter <source_binary_filename>          # Интерпретатор
 
-./build/run_tests    # Тестирование инструкций
+ctest --test-dir build                 # Прогон всех доступных тестов
 ```
