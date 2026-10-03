@@ -8,6 +8,7 @@
 namespace {
 
 #define DISPATCH_NEXT(Thread)                                                  \
+  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;                                     \
   ++(Thread).Current;                                                          \
   if ((Thread).Current == (Thread).End) {                                      \
     return;                                                                    \
@@ -62,7 +63,6 @@ uint32_t compressBits(uint32_t Value, uint32_t Mask) {
 void executeLi(TIThreadState &Thread) {
   const auto &Operands                    = Thread.Current->Operands;
   Thread.Cpu.Registers[Operands[0].Value] = Operands[1].Value;
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -71,7 +71,6 @@ void executeAdd(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       Registers[Operands[1].Value] + Registers[Operands[2].Value];
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -80,7 +79,6 @@ void executeAddi(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       Registers[Operands[1].Value] + Operands[2].Value;
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -89,7 +87,6 @@ void executeOr(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       Registers[Operands[1].Value] | Registers[Operands[2].Value];
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -99,7 +96,6 @@ void executeLdReg(TIThreadState &Thread) {
   uint32_t Address =
       Registers[Operands[1].Value] + Registers[Operands[2].Value];
   Registers[Operands[0].Value] = Thread.Memory.read32(Address);
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -108,7 +104,6 @@ void executeLdImm(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   uint32_t Address     = Registers[Operands[1].Value] + Operands[2].Value;
   Registers[Operands[0].Value] = Thread.Memory.read32(Address);
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -117,7 +112,6 @@ void executeSt(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   uint32_t Address     = Registers[Operands[1].Value] + Operands[2].Value;
   Thread.Memory.write32(Address, Registers[Operands[0].Value]);
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -130,7 +124,6 @@ void executeStp(TIThreadState &Thread) {
   Thread.Memory.write32(Address + TI32::WORD_SIZE,
                         Registers[Operands[1].Value]);
 
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -155,7 +148,6 @@ void executeClz(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       countLeadingZeros(Registers[Operands[1].Value]);
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -164,7 +156,6 @@ void executeSsat(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       saturateSigned(Registers[Operands[1].Value], Operands[2].Value);
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -173,7 +164,6 @@ void executeRori(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       rotateRight(Registers[Operands[1].Value], Operands[2].Value);
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
@@ -182,7 +172,6 @@ void executeBext(TIThreadState &Thread) {
   auto &Registers      = Thread.Cpu.Registers;
   Registers[Operands[0].Value] =
       compressBits(Registers[Operands[1].Value], Registers[Operands[2].Value]);
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
   DISPATCH_NEXT(Thread);
 }
 
