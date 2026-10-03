@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.13)
 
 project(toy_isa_interpreter LANGUAGES CXX)
 
-if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   message(FATAL_ERROR
-    "Threaded execution requires Clang because it uses [[clang::musttail]] (use -DCMAKE_CXX_COMPILER=clang++)"
+    "Threaded execution requires Clang or GCC with musttail support"
   )
 endif()
 

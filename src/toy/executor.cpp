@@ -1,8 +1,24 @@
 #include "../../include/toy/executor.hpp"
 #include "../../include/toy/toy_constants.hpp"
 
-#if !defined(__clang__)
-#error "Threaded execution with [[clang::musttail]] requires Clang"
+// Threded code requires musttail attribute
+
+#if defined(__clang__)
+#if __has_cpp_attribute(clang::musttail)
+#define TI_MUSTTAIL [[clang::musttail]]
+#else
+#error "Clang does not support [[clang::musttail]]"
+#endif
+
+#elif defined(__GNUC__)
+#if __has_cpp_attribute(gnu::musttail)
+#define TI_MUSTTAIL [[gnu::musttail]]
+#else
+#error "GCC does not support [[gnu::musttail]]"
+#endif
+
+#else
+#error "Threaded execution requires a compiler with musttail support"
 #endif
 
 namespace {
@@ -13,7 +29,7 @@ namespace {
   if ((Thread).Current == (Thread).End) {                                      \
     return;                                                                    \
   }                                                                            \
-  [[clang::musttail]] return (Thread).Current->Execute(Thread)
+  TI_MUSTTAIL return (Thread).Current->Execute(Thread)
 
 uint32_t countLeadingZeros(uint32_t Value) {
   uint32_t Count = 0;
@@ -188,6 +204,7 @@ void executeInvalid(TIThreadState &) {
 }
 
 #undef DISPATCH_NEXT
+#undef TI_MUSTTAIL
 
 } // namespace
 
