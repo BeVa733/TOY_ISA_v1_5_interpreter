@@ -2,32 +2,12 @@
 // alignment, out of bounds memory access and code protection
 
 #include "../include/toy/memory.hpp"
+#include "test_utils.hpp"
 
 #include <iostream>
 #include <stdexcept>
-#include <string>
 
 namespace {
-
-void require(bool Condition, const std::string &Message) {
-  if (!Condition) {
-    throw std::runtime_error(Message);
-  }
-}
-
-template <typename TAction>
-void requireError(ErrorCode Expected, TAction Action, const char *Description) {
-  try {
-    Action();
-  } catch (const SimulationException &Error) {
-    require(Error.code() == Expected,
-            std::string(Description) + ": incorrect error code");
-    return;
-  }
-
-  throw std::runtime_error(std::string(Description) +
-                           ": expected memory error was not thrown");
-}
 
 void testWrite32() {
   TIMemory Memory(16);

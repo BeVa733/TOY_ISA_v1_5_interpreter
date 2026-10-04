@@ -1,6 +1,7 @@
 #include "../include/toy/execution_context.hpp"
 #include "../include/toy/toy_constants.hpp"
 #include "encode.hpp"
+#include "test_utils.hpp"
 
 #include <bitset>
 #include <cstdint>
@@ -15,12 +16,6 @@
 
 namespace {
 
-void require(bool Condition, const std::string &Message) {
-  if (!Condition) {
-    throw std::runtime_error(Message);
-  }
-}
-
 void writeProgram(const std::filesystem::path &Path,
                   const std::vector<uint32_t> &Words) {
   std::ofstream File(Path, std::ios::binary | std::ios::trunc);
@@ -28,10 +23,9 @@ void writeProgram(const std::filesystem::path &Path,
   require(File.is_open(), "Cannot create instruction test binary");
 
   for (uint32_t Word : Words) {
-    char Bytes[TI32::WORD_SIZE]{static_cast<char>(Word),
-                                static_cast<char>(Word >> 8),
-                                static_cast<char>(Word >> 16),
-                                static_cast<char>(Word >> 24)};
+    char Bytes[TI32::WORD_SIZE]{
+        static_cast<char>(Word), static_cast<char>(Word >> 8),
+        static_cast<char>(Word >> 16), static_cast<char>(Word >> 24)};
     File.write(Bytes, sizeof(Bytes));
   }
 
@@ -112,8 +106,7 @@ void testLi(const std::filesystem::path &Path) {
   loadProgram(Context, Path, {encodeLi(31, -1)});
   runBlock(Context);
   require(Context.cpu().Registers[31] == 0xFFFFFFFFu, "LI failed");
-  require(Context.cpu().PC == TI32::INSTRUCTION_SIZE,
-          "LI did not advance PC");
+  require(Context.cpu().PC == TI32::INSTRUCTION_SIZE, "LI did not advance PC");
 }
 
 void testAdd(const std::filesystem::path &Path) {
