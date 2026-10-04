@@ -19,6 +19,6 @@ add_test(
 	COMMAND decoder_tests ${CMAKE_CURRENT_SOURCE_DIR}/dcoder_test/decoder.bin
 )
 
-add_executable(instruction_tests instruction_tests.cpp)
-target_link_libraries(instruction_tests PRIVATE toy_isa)
-add_test(NAME instruction_tests COMMAND instruction_tests)
+add_executable(executor_tests executor_tests.cpp)
+target_link_libraries(executor_tests PRIVATE toy_isa)
+add_test(NAME executor_tests COMMAND executor_tests)
