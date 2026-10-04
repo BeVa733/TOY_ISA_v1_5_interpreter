@@ -22,3 +22,13 @@ add_test(
 add_executable(executor_tests executor_tests.cpp)
 target_link_libraries(executor_tests PRIVATE toy_isa)
 add_test(NAME executor_tests COMMAND executor_tests)
+
+add_executable(basic_block_tests basic_block_tests.cpp)
+target_link_libraries(basic_block_tests PRIVATE toy_isa)
+add_test(
+	NAME basic_block_tests
+	COMMAND basic_block_tests
+		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/cache.bin
+		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/program.bin
+		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/fault.bin
+)
