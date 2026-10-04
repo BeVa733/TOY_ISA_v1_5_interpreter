@@ -13,7 +13,7 @@ chmod +x assembler/toy_as.rb
 ## Запуск
 
 ```bash
-./assembler/toy_as.rb <source_filename> [binary_filename] # ассемблер
+./assembler/toy_as.rb <source_filename> [binary_filename] # Ассемблер
 
 ./build/interpreter <source_binary_filename>          # Интерпретатор
 
