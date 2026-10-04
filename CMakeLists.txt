@@ -21,6 +21,4 @@ add_executable(interpreter)
 add_subdirectory(src)
 target_link_libraries(interpreter PRIVATE toy_isa)
 
-add_executable(run_tests)
 add_subdirectory(tests)
-target_link_libraries(run_tests PRIVATE toy_isa)
