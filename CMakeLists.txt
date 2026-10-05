@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.13)
 
 project(toy_isa_interpreter LANGUAGES CXX)
 
+find_path(ELFIO_INCLUDE_DIRECTORY elfio/elfio.hpp)
+if(NOT ELFIO_INCLUDE_DIRECTORY)
+	message(FATAL_ERROR "ELFIO is required for the project")
+endif()
+
 enable_testing()
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
@@ -20,5 +25,7 @@ target_include_directories(toy_isa PUBLIC
 add_executable(interpreter)
 add_subdirectory(src)
 target_link_libraries(interpreter PRIVATE toy_isa)
+
+add_subdirectory(assembler)
 
 add_subdirectory(tests)
