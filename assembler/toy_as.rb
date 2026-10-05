@@ -53,7 +53,7 @@ def main(arguments)
     encoder.encode(instruction)
   end
 
-  write_elf(output_path, words.pack("V*"), "".b)
+  write_elf(output_path, words.pack("V*"), assembler.data)
   0
 end
 

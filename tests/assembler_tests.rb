@@ -5,6 +5,7 @@ require_relative "../assembler/modules/encoder"
 
 def assemble(&program)
   assembler = Assembler.new
+  assembler.Section(:text)
   assembler.instance_eval(&program)
   encoder = Encoder.new(assembler.labels)
   assembler.instructions.map { |instruction| encoder.encode(instruction) }
