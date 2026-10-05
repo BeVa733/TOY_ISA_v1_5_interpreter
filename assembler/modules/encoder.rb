@@ -219,9 +219,16 @@ class Encoder
 
   def label_address(label, line)
     required(label, Symbol, line)
-    return @labels[label] if @labels.key?(label)
+    unless @labels.key?(label)
+      raise "Unknown label #{label} at line #{line}"
+    end
 
-    raise "Unknown label #{label} at line #{line}"
+    label_info = @labels[label]
+    unless label_info.section == :text
+      raise "Jump target #{label} must belong to .text at line #{line}"
+    end
+
+    label_info.offset
   end
 
   def require_alignment(address, line)

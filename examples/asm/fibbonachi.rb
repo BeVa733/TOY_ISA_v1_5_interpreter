@@ -1,3 +1,4 @@
+Section :text
 
 		Li   x1, 9 # fibbonachi number
 		Li   x2, 2 # will be x1 when we get required numer
@@ -19,6 +20,5 @@ Label :Exit
 
 		Li   x8, 60
 		syscall
-
 
 
