@@ -32,8 +32,7 @@ enum class ErrorCode : uint8_t {
   MEMORY_OUT_OF_BOUNDS  = 1,
   MISALIGNED_ACCESS     = 2,
   UNSUPPORTED_SYSCALL   = 3,
-  INCORRECT_BINARY_FILE = 4,
-  WRITE_TO_CODE         = 5
+  INCORRECT_BINARY_FILE = 4
 };
 
 class SimulationException : public std::runtime_error {

@@ -3,6 +3,7 @@
 #include "decoder.hpp"
 #include "memory.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <unordered_map>
 #include <utility>
@@ -16,8 +17,13 @@ public:
         Instructions(std::move(DecodedInstructions)) {}
 
 public:
-  /// State geters 
+  /// State geters
   uint32_t startAddress() const { return StartAddress_; }
+
+  uint32_t endAddress() const {
+    return StartAddress_ +
+           static_cast<uint32_t>(Instructions.size() * TI32::INSTRUCTION_SIZE);
+  }
 
   const std::vector<TIInstruction> &instructions() const {
     return Instructions;
@@ -26,7 +32,6 @@ public:
 private:
   uint32_t StartAddress_ = 0;
   std::vector<TIInstruction> Instructions{};
-
 };
 
 class TIBasicBlockCache final {
@@ -36,6 +41,8 @@ public:
                          TIDecoder &Decoder);
 
   void clear() { Blocks.clear(); }
+
+  void invalidateRange(uint32_t Address, std::size_t ByteCount);
 
 private:
   using BlockMap = std::unordered_map<uint32_t, TIBasicBlock>;

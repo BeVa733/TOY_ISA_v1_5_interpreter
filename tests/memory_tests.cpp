@@ -1,5 +1,5 @@
 // Memory test for checking correctness little-endian words read/write,
-// alignment, out of bounds memory access and code protection
+// alignment, out of bounds memory access and writable code
 
 #include "../include/toy/memory.hpp"
 #include "test_utils.hpp"
@@ -68,28 +68,11 @@ void testBoundsAndAlignment() {
       "Misaligned write32");
 }
 
-void testProtection() {
+void testCodeIsWritable() {
   TIMemory Memory(64);
-  Memory.protectInstructionRange(16, 16);
-
-  Memory.read32(20);
-  requireError(
-      ErrorCode::WRITE_TO_CODE, [&Memory] { Memory.write32(20, 1); },
-      "Write inside protected code");
-  requireError(
-      ErrorCode::WRITE_TO_CODE, [&Memory] { Memory.writableRange(14, 4); },
-      "Write overlaps code beginning");
-  requireError(
-      ErrorCode::WRITE_TO_CODE, [&Memory] { Memory.writableRange(30, 4); },
-      "Write overlaps code end");
-
-  Memory.writableRange(12, 4);
-  Memory.writableRange(32, 4);
-
-  Memory.clearInstructionProtection();
   Memory.write32(20, 0x12345678);
   require(Memory.read32(20) == 0x12345678,
-          "Memory remained protected after clearing protection");
+          "Code memory is not writable");
 }
 
 } // namespace
@@ -101,7 +84,7 @@ int main() {
     testWordRoundTrip();
     testByteRanges();
     testBoundsAndAlignment();
-    testProtection();
+    testCodeIsWritable();
   } catch (const std::runtime_error &Error) {
     std::cerr << Error.what() << '\n';
     return 1;

@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <utility>
 #include <vector>
 
 #include "bitutils.hpp"
@@ -22,34 +24,15 @@ struct TIMemoryRange {
 
 class TIMemory {
 public:
+  /// Callback lambda for inform BB Cache about writing into memory
+  using WriteObserver = std::function<void(uint32_t, std::size_t)>;
+
   explicit TIMemory(std::size_t SizeBytes) : Bytes(SizeBytes, 0) {}
 
   std::size_t size() const { return Bytes.size(); }
 
-  /// Return true if instructions are protected
-  bool hasInstructionRange() const { return InstructionProtectionEnabled_; }
-
-  /// Return true if instruction belongs to instruction range
-  bool containsInstruction(uint32_t Address) const {
-    uint64_t Begin = Address;
-    uint64_t End   = static_cast<uint64_t>(Address) + TI32::INSTRUCTION_SIZE;
-    return InstructionProtectionEnabled_ && Begin >= InstructionBegin_ &&
-           End <= InstructionEnd_;
-  }
-
-  /// Mark a byte range as executable code and prohibit writes to it.
-  void protectInstructionRange(uint32_t Address, std::size_t ByteCount) {
-    checkBounds(Address, ByteCount);
-    InstructionBegin_             = Address;
-    InstructionEnd_               = static_cast<uint64_t>(Address) + ByteCount;
-    InstructionProtectionEnabled_ = true;
-  }
-
-  /// Remove protection from the previously marked instruction range.
-  void clearInstructionProtection() {
-    InstructionBegin_             = 0;
-    InstructionEnd_               = 0;
-    InstructionProtectionEnabled_ = false;
+  void setWriteObserver(WriteObserver Observer) {
+    this->Observer = std::move(Observer);
   }
 
   /// Return a checked read-only range valid while this memory is not moved.
@@ -63,7 +46,9 @@ public:
   /// Return a checked writable range valid while this memory is not moved.
   TIMemoryRange writableRange(uint32_t Address, std::size_t ByteCount) {
     checkBounds(Address, ByteCount);
-    checkWritable(Address, ByteCount);
+    if (Observer && ByteCount != 0) {
+      Observer(Address, ByteCount);
+    }
     uint8_t *Data = ByteCount == 0 ? nullptr : Bytes.data() + Address;
     return {Data, ByteCount};
   }
@@ -82,9 +67,7 @@ public:
 
 private:
   std::vector<uint8_t> Bytes{};
-  uint64_t InstructionBegin_         = 0;
-  uint64_t InstructionEnd_           = 0;
-  bool InstructionProtectionEnabled_ = false;
+  WriteObserver Observer{};
 
   void checkBounds(uint32_t Address, std::size_t ByteCount) const {
     constexpr uint64_t ADDRESS_SPACE_SIZE = uint64_t{1} << TI32::WORD_BIT_COUNT;
@@ -102,21 +85,6 @@ private:
       throw SimulationException(ErrorCode::MISALIGNED_ACCESS,
                                 "[MEMORY] Error: misaligned access at " +
                                     std::to_string(Address));
-    }
-  }
-
-  void checkWritable(uint32_t Address, std::size_t ByteCount) const {
-    if (!InstructionProtectionEnabled_ || ByteCount == 0) {
-      return;
-    }
-
-    uint64_t WriteBegin = Address;
-    uint64_t WriteEnd   = static_cast<uint64_t>(Address) + ByteCount;
-    if (WriteBegin < InstructionEnd_ && WriteEnd > InstructionBegin_) {
-      throw SimulationException(
-          ErrorCode::WRITE_TO_CODE,
-          "[MEMORY] Error: write to instruction memory at address " +
-              std::to_string(Address));
     }
   }
 };

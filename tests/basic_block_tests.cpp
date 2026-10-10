@@ -12,7 +12,7 @@ void testCache(const std::string &Filename) {
   ExecutionContext Context(48);
   Context.loadBinary(Filename);
 
-  const TIMemory &Memory = Context.memory();
+  TIMemory &Memory = Context.memory();
   TIDecoder Decoder{};
   TIBasicBlockCache Cache{};
 
@@ -38,6 +38,17 @@ void testCache(const std::string &Filename) {
   require(Syscall.instructions().size() == 2, "SYSCALL did not end its block");
   require(Syscall.instructions().back().OpCode == TIOpcode::SYSCALL,
           "SYSCALL block has incorrect last instruction");
+
+  const TIBasicBlock *BranchAddress = &Branch;
+  Memory.setWriteObserver([&Cache](uint32_t Address, std::size_t ByteCount) {
+    Cache.invalidateRange(Address, ByteCount);
+  });
+  Memory.write32(0, 0);
+  const TIBasicBlock &Invalidated = Cache.getBlock(0, Memory, Decoder);
+  require(Invalidated.instructions().front().OpCode == TIOpcode::INVALID,
+          "Code write did not invalidate the affected block");
+  require(&Cache.getBlock(16, Memory, Decoder) == BranchAddress,
+          "Code write invalidated an unaffected block");
 }
 
 void testThreadedExecution(const std::string &Filename) {

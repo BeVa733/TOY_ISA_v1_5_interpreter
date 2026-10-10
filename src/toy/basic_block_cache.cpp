@@ -20,11 +20,6 @@ TIBasicBlock &TIBasicBlockCache::decodeBlock(uint32_t Address,
 
     CurrentAddress += TI32::INSTRUCTION_SIZE;
 
-    if (Memory.hasInstructionRange() &&
-        !Memory.containsInstruction(CurrentAddress)) {
-      break;
-    }
-
     if (static_cast<uint64_t>(CurrentAddress) + TI32::INSTRUCTION_SIZE >
         Memory.size()) {
       break;
@@ -46,6 +41,22 @@ TIBasicBlock &TIBasicBlockCache::getBlock(uint32_t Address,
   }
 
   return decodeBlock(Address, Memory, Decoder);
+}
+
+void TIBasicBlockCache::invalidateRange(uint32_t Address,
+                                        std::size_t ByteCount) {
+  const uint64_t WriteBegin = Address;
+  const uint64_t WriteEnd   = WriteBegin + ByteCount;
+
+  for (auto It = Blocks.begin(); It != Blocks.end();) {
+    const uint64_t BlockBegin = It->second.startAddress();
+    const uint64_t BlockEnd   = It->second.endAddress();
+    if (BlockBegin < WriteEnd && WriteBegin < BlockEnd) {
+      It = Blocks.erase(It);
+    } else {
+      ++It;
+    }
+  }
 }
 
 bool TIBasicBlockCache::endsBlock(TIOpcode OpCode) {

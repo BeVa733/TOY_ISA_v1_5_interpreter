@@ -13,7 +13,13 @@
 
 class ExecutionContext {
 public:
-  explicit ExecutionContext(std::size_t MemorySize) : Memory(MemorySize) {}
+  explicit ExecutionContext(std::size_t MemorySize) : Memory(MemorySize) {
+
+    // this for call BB functions for this context
+    Memory.setWriteObserver([this](uint32_t Address, std::size_t ByteCount) {
+      BlockCache.invalidateRange(Address, ByteCount);
+    });
+  }
 
   /// Load ELF .text and .data sections, set PC and reset execution status
   void loadBinary(const std::string &Filename, uint32_t LoadAddress = 0);
@@ -26,6 +32,7 @@ public:
 
   /// Const metodes for check state in tests
   const TICpuState &cpu() const { return Cpu; }
+  TIMemory &memory() { return Memory; }
   const TIMemory &memory() const { return Memory; }
   const TIExecutionState &state() const { return State; }
 
