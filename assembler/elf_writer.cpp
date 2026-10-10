@@ -8,6 +8,7 @@
 
 namespace {
 
+constexpr uint16_t TI_ELF_MACHINE    = 0x6767;
 constexpr uint32_t TEXT_ADDRESS      = 0;
 constexpr uint32_t SECTION_ALIGNMENT = 4;
 
@@ -40,9 +41,9 @@ void writeElf(const std::string &OutputFilename,
 
   ELFIO::elfio Writer{};
   Writer.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2LSB);
-  Writer.set_os_abi(ELFIO::ELFOSABI_NONE);
+  Writer.set_os_abi(ELFIO::ELFOSABI_LINUX);
   Writer.set_type(ELFIO::ET_EXEC);
-  Writer.set_machine(ELFIO::EM_NONE);
+  Writer.set_machine(TI_ELF_MACHINE);
   Writer.set_entry(TEXT_ADDRESS);
 
   ELFIO::section *TextSection = Writer.sections.add(".text");
