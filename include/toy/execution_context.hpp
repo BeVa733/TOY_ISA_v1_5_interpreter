@@ -15,7 +15,7 @@ class ExecutionContext {
 public:
   explicit ExecutionContext(std::size_t MemorySize) : Memory(MemorySize) {}
 
-  /// Load complete 32-bit words, set PC and reset execution status
+  /// Load ELF .text and .data sections, set PC and reset execution status
   void loadBinary(const std::string &Filename, uint32_t LoadAddress = 0);
 
   /// Find or decode and execute one basic block
