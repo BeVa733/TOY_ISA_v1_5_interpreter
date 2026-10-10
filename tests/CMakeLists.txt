@@ -28,7 +28,7 @@ target_link_libraries(basic_block_tests PRIVATE toy_isa)
 add_test(
 	NAME basic_block_tests
 	COMMAND basic_block_tests
-		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/cache.bin
-		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/program.bin
-		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/fault.bin
+		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/cache.elf
+		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/program.elf
+		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/fault.elf
 )
