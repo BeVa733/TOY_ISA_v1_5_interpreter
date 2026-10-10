@@ -245,3 +245,41 @@ TIExecuteHandler getExecuteHandler(TIOpcode OpCode) {
     return executeInvalid;
   }
 }
+
+void executeInstructionSwitch(TIThreadState &Thread) {
+  switch (Thread.Current->OpCode) {
+  case TIOpcode::LI:
+    return executeLi(Thread);
+  case TIOpcode::ADD:
+    return executeAdd(Thread);
+  case TIOpcode::ADDI:
+    return executeAddi(Thread);
+  case TIOpcode::OR:
+    return executeOr(Thread);
+  case TIOpcode::LDreg:
+    return executeLdReg(Thread);
+  case TIOpcode::ST:
+    return executeSt(Thread);
+  case TIOpcode::STP:
+    return executeStp(Thread);
+  case TIOpcode::BEQ:
+    return executeBeq(Thread);
+  case TIOpcode::J:
+    return executeJ(Thread);
+  case TIOpcode::CLZ:
+    return executeClz(Thread);
+  case TIOpcode::SSAT:
+    return executeSsat(Thread);
+  case TIOpcode::RORI:
+    return executeRori(Thread);
+  case TIOpcode::BEXT:
+    return executeBext(Thread);
+  case TIOpcode::SYSCALL:
+    return executeSyscall(Thread);
+  case TIOpcode::LDimm:
+    return executeLdImm(Thread);
+  case TIOpcode::INVALID:
+  default:
+    return executeInvalid(Thread);
+  }
+}

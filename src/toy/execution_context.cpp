@@ -85,6 +85,21 @@ void ExecutionContext::run() {
 
 void ExecutionContext::executeBlock(const TIBasicBlock &Block) {
   const auto &Instructions = Block.instructions();
+
+  if (Mode == TIExecutionMode::SWITCH) {
+    try {
+      for (const TIInstruction &Instruction : Instructions) {
+        TIThreadState Thread(Cpu, Memory, State, SyscallEmulator, &Instruction,
+                             &Instruction + 1);
+        executeInstructionSwitch(Thread);
+      }
+    } catch (const SimulationException &) {
+      State.fault();
+      throw;
+    }
+    return;
+  }
+
   TIThreadState Thread(Cpu, Memory, State, SyscallEmulator, Instructions.data(),
                        Instructions.data() + Instructions.size());
 

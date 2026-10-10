@@ -51,8 +51,8 @@ void testCache(const std::string &Filename) {
           "Code write invalidated an unaffected block");
 }
 
-void testThreadedExecution(const std::string &Filename) {
-  ExecutionContext Context(64);
+void testExecution(const std::string &Filename, TIExecutionMode Mode) {
+  ExecutionContext Context(64, Mode);
   Context.loadBinary(Filename);
 
   Context.step();
@@ -66,8 +66,8 @@ void testThreadedExecution(const std::string &Filename) {
   require(Context.cpu().PC == 16, "SYSCALL incorrectly advanced PC");
 }
 
-void testExecutionFault(const std::string &Filename) {
-  ExecutionContext Context(64);
+void testExecutionFault(const std::string &Filename, TIExecutionMode Mode) {
+  ExecutionContext Context(64, Mode);
   Context.loadBinary(Filename);
 
   requireError(
@@ -88,8 +88,10 @@ int main(int ArgumentCount, char *Arguments[]) {
 
   try {
     testCache(Arguments[1]);
-    testThreadedExecution(Arguments[2]);
-    testExecutionFault(Arguments[3]);
+    testExecution(Arguments[2], TIExecutionMode::THREADED);
+    testExecution(Arguments[2], TIExecutionMode::SWITCH);
+    testExecutionFault(Arguments[3], TIExecutionMode::THREADED);
+    testExecutionFault(Arguments[3], TIExecutionMode::SWITCH);
   } catch (const std::runtime_error &Error) {
     std::cerr << Error.what() << '\n';
     return 1;

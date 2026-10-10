@@ -26,3 +26,6 @@ struct TIThreadState final {
 
 /// Return the threaded execution handler for an internal opcode.
 TIExecuteHandler getExecuteHandler(TIOpcode OpCode);
+
+/// Execute one instruction through the central switch dispatcher.
+void executeInstructionSwitch(TIThreadState &Thread);

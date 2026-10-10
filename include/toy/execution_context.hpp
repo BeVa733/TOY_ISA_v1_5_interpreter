@@ -11,9 +11,17 @@
 #include <cstdint>
 #include <string>
 
+enum class TIExecutionMode : uint8_t {
+  THREADED = 0,
+  SWITCH   = 1
+};
+
 class ExecutionContext {
 public:
-  explicit ExecutionContext(std::size_t MemorySize) : Memory(MemorySize) {
+  explicit ExecutionContext(
+      std::size_t MemorySize,
+      TIExecutionMode ExecutionMode = TIExecutionMode::THREADED)
+      : Memory(MemorySize), Mode(ExecutionMode) {
 
     // this for call BB functions for this context
     Memory.setWriteObserver([this](uint32_t Address, std::size_t ByteCount) {
@@ -43,6 +51,7 @@ private:
   TIDecoder Decoder{};
   TIBasicBlockCache BlockCache{};
   TISyscallEmulator SyscallEmulator{};
+  TIExecutionMode Mode = TIExecutionMode::THREADED;
 
   void executeBlock(const TIBasicBlock &Block);
 };
