@@ -9,6 +9,8 @@
 
 class TISyscallEmulator {
 public:
+  inline static constexpr uint32_t READ_NUMBER_SYSCALL = 337;
+
   void execute(TICpuState &Cpu, TIMemory &Memory,
                TIExecutionState &State) const;
 
@@ -17,14 +19,17 @@ private:
 
   static void handleRead(TICpuState &Cpu, TIMemory &Memory,
                          TIExecutionState &State);
+  static void handleReadNumber(TICpuState &Cpu, TIMemory &Memory,
+                               TIExecutionState &State);
   static void handleWrite(TICpuState &Cpu, TIMemory &Memory,
                           TIExecutionState &State);
   static void handleExit(TICpuState &Cpu, TIMemory &Memory,
                          TIExecutionState &State);
 
   inline static const std::unordered_map<uint32_t, Handler> Handlers{
-      {0,  handleRead },
-      {1,  handleWrite},
-      {60, handleExit }
+      {0,                   handleRead      },
+      {1,                   handleWrite     },
+      {60,                  handleExit      },
+      {READ_NUMBER_SYSCALL, handleReadNumber}
   };
 };

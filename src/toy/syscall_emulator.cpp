@@ -1,6 +1,8 @@
 #include "../../include/toy/syscall_emulator.hpp"
 
 #include <cerrno>
+#include <cstdint>
+#include <iostream>
 #include <string>
 #include <unistd.h>
 
@@ -44,6 +46,18 @@ void TISyscallEmulator::handleRead(TICpuState &Cpu, TIMemory &Memory,
   }
 
   Cpu.Registers[0] = static_cast<uint32_t>(Result);
+}
+
+void TISyscallEmulator::handleReadNumber(TICpuState &Cpu, TIMemory &,
+                                         TIExecutionState &) {
+  int32_t Value = 0;
+  if (std::cin >> Value) {
+    Cpu.Registers[0] = static_cast<uint32_t>(Value);
+    return;
+  }
+
+  errno = std::cin.eof() ? ENODATA : EINVAL;
+  Cpu.Registers[0] = syscallError();
 }
 
 void TISyscallEmulator::handleWrite(TICpuState &Cpu, TIMemory &Memory,
