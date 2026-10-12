@@ -13,9 +13,12 @@ chmod +x assembler/toy_as.rb
 ## Запуск
 
 ```bash
-./assembler/toy_as.rb <source_filename> [binary_filename] # Ассемблер
+# Ассемблер
+./assembler/toy_as.rb <source_filename> [binary_filename]
 
-./build/interpreter <source_binary_filename>          # Интерпретатор
+# Интерпретатор
+./build/interpreter <source_binary_filename> [--engine=threaded|switch]
 
-ctest --test-dir build                 # Прогон всех доступных тестов
+# Прогон всех доступных тестов
+ctest --test-dir build
 ```

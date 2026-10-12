@@ -28,4 +28,6 @@ target_link_libraries(interpreter PRIVATE toy_isa)
 
 add_subdirectory(assembler)
 
+add_subdirectory(benchmark)
+
 add_subdirectory(tests)
