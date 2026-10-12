@@ -21,4 +21,8 @@ chmod +x assembler/toy_as.rb
 
 # Прогон всех доступных тестов
 ctest --test-dir build
+
+# Запуск бенчмарков сравнения switch диспетчеризации и thraded code 
+chmod +x benchmark/run_benchmarks.sh
+./benchmark/run_benchmarks.sh
 ```
