@@ -29,7 +29,7 @@ public:
     });
   }
 
-  /// Load ELF .text and .data sections, set PC and reset execution status
+  /// Load ELF PT_LOAD segments, set PC and reset execution status
   void loadBinary(const std::string &Filename, uint32_t LoadAddress = 0);
 
   /// Find or decode and execute one basic block

@@ -8,22 +8,26 @@
 
 namespace {
 
-void loadSection(const ELFIO::section *Section, TIMemory &Memory,
-                 const char *Name) {
-  if (Section == nullptr) {
-    throw SimulationException(ErrorCode::INCORRECT_BINARY_FILE,
-                              std::string("[LOADER] ELF section is missing: ") +
-                                  Name);
+void loadSegment(const ELFIO::segment *Segment, TIMemory &Memory) {
+  const ELFIO::Elf64_Addr Address = Segment->get_virtual_address();
+  const ELFIO::Elf_Xword FileSize = Segment->get_file_size();
+  const ELFIO::Elf_Xword MemorySize = Segment->get_memory_size();
+
+  if (FileSize > MemorySize) {
+    throw SimulationException(
+        ErrorCode::INCORRECT_BINARY_FILE,
+        "[LOADER] ELF segment file size exceeds memory size");
   }
 
-  const ELFIO::Elf64_Addr Address = Section->get_address();
-  const ELFIO::Elf_Xword Size     = Section->get_size();
-
-  TIMemoryRange Range = Memory.writableRange(static_cast<uint32_t>(Address),
-                                             static_cast<std::size_t>(Size));
-  if (Size != 0) {
-    std::memcpy(Range.Data, Section->get_data(),
-                static_cast<std::size_t>(Size));
+  TIMemoryRange Range = Memory.writableRange(
+      static_cast<uint32_t>(Address), static_cast<std::size_t>(MemorySize));
+  if (FileSize != 0) {
+    std::memcpy(Range.Data, Segment->get_data(),
+                static_cast<std::size_t>(FileSize));
+  }
+  if (MemorySize > FileSize) {
+    std::memset(Range.Data + FileSize, 0,
+                static_cast<std::size_t>(MemorySize - FileSize));
   }
 }
 
@@ -52,19 +56,31 @@ void ExecutionContext::loadBinary(const std::string &Filename,
         "[LOADER] Expected a 32-bit little-endian Toy ISA ELF");
   }
 
-  const ELFIO::section *Text = Reader.sections[".text"];
-  const ELFIO::section *Data = Reader.sections[".data"];
-  if (Text == nullptr || Text->get_size() == 0 ||
-      Text->get_size() % TI32::INSTRUCTION_SIZE != 0 ||
-      Text->get_address() % TI32::INSTRUCTION_SIZE != 0) {
-    throw SimulationException(
-        ErrorCode::INCORRECT_BINARY_FILE,
-        "[LOADER] ELF must contain an aligned nonempty .text section");
+  bool HasExecutableSegment = false;
+  for (const auto &SegmentHandle : Reader.segments) {
+    const ELFIO::segment *Segment = SegmentHandle.get();
+    if (Segment->get_type() != ELFIO::PT_LOAD) {
+      continue;
+    }
+
+    if ((Segment->get_flags() & ELFIO::PF_X) != 0 &&
+        Segment->get_memory_size() != 0) {
+      if (Segment->get_memory_size() % TI32::INSTRUCTION_SIZE != 0 ||
+          Segment->get_virtual_address() % TI32::INSTRUCTION_SIZE != 0) {
+        throw SimulationException(
+            ErrorCode::INCORRECT_BINARY_FILE,
+            "[LOADER] Executable ELF segment is not instruction-aligned");
+      }
+      HasExecutableSegment = true;
+    }
+
+    loadSegment(Segment, Memory);
   }
 
-  loadSection(Text, Memory, ".text");
-  if (Data != nullptr) {
-    loadSection(Data, Memory, ".data");
+  if (!HasExecutableSegment) {
+    throw SimulationException(
+        ErrorCode::INCORRECT_BINARY_FILE,
+        "[LOADER] ELF must contain a nonempty executable load segment");
   }
 
   Cpu.PC = static_cast<uint32_t>(Reader.get_entry());
