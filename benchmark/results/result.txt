@@ -1,0 +1,14 @@
+== linear.elf ==
+threaded  median=   2484.01 us min=   2456.58 us exit=42
+switch    median=   2549.21 us min=   2533.13 us exit=42
+==============================
+
+== loop.elf ==
+threaded  median=   1447.59 us min=   1382.42 us exit=42
+switch    median=   1780.64 us min=   1505.96 us exit=42
+==============================
+
+== memory.elf ==
+threaded  median=   2673.97 us min=   2567.08 us exit=42
+switch    median=   2861.81 us min=   2855.07 us exit=42
+==============================
