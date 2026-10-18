@@ -10,6 +10,24 @@ if(NOT EXISTS "${IR_SOURCE_DIRECTORY}/ir.h")
 	)
 endif()
 
+set(IR_LIBRARY "${IR_SOURCE_DIRECTORY}/libir.a")
+
+add_custom_target(ir_build
+	COMMAND make
+	WORKING_DIRECTORY "${IR_SOURCE_DIRECTORY}"
+	BYPRODUCTS "${IR_LIBRARY}"
+	COMMENT "Building IR"
+)
+
+add_library(ir INTERFACE)
+add_dependencies(ir ir_build)
+target_include_directories(ir INTERFACE "${IR_SOURCE_DIRECTORY}")
+target_link_libraries(ir INTERFACE
+	"${IR_LIBRARY}"
+	${CMAKE_DL_LIBS}
+	m
+)
+
 find_path(ELFIO_INCLUDE_DIRECTORY elfio/elfio.hpp)
 if(NOT ELFIO_INCLUDE_DIRECTORY)
 	message(FATAL_ERROR "ELFIO is required for the project")
@@ -25,6 +43,7 @@ endif()
 
 add_library(toy_isa)
 target_compile_features(toy_isa PUBLIC cxx_std_17)
+target_link_libraries(toy_isa PRIVATE ir)
 add_subdirectory(src/toy)
 add_subdirectory(src/execution_type)
 target_include_directories(toy_isa PUBLIC
