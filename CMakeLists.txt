@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 project(toy_isa_interpreter LANGUAGES CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(IR_SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ir")
 if(NOT EXISTS "${IR_SOURCE_DIRECTORY}/ir.h")
 	message(FATAL_ERROR

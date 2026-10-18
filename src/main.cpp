@@ -13,7 +13,7 @@ constexpr std::size_t MEMORY_SIZE = 64 * 1024 * 1024;
 int main(int ArgumentCount, char *Arguments[]) {
   if (ArgumentCount < 2 || ArgumentCount > 3) {
     std::cerr << "Usage: " << Arguments[0]
-              << " <program.elf> [--engine=threaded|switch]\n";
+              << " <program.elf> [--engine=threaded|switch|jit]\n";
     return 1;
   }
 
@@ -24,6 +24,8 @@ int main(int ArgumentCount, char *Arguments[]) {
       std::string Engine = Arguments[2];
       if (Engine == "--engine=switch") {
         Mode = TIExecutionMode::SWITCH;
+      } else if (Engine == "--engine=jit") {
+        Mode = TIExecutionMode::JIT;
       } else if (Engine != "--engine=threaded") {
         throw std::runtime_error("Unknown execution engine: " + Engine);
       }

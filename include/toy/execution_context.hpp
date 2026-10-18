@@ -13,7 +13,8 @@
 
 enum class TIExecutionMode : uint8_t {
   THREADED = 0,
-  SWITCH   = 1
+  SWITCH   = 1,
+  JIT      = 2
 };
 
 class ExecutionContext {

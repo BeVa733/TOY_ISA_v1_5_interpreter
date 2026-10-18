@@ -1,4 +1,5 @@
 #include "../../include/toy/execution_context.hpp"
+#include "../../include/execution_type/jit_executor.hpp"
 #include "../../include/execution_type/switch_executor.hpp"
 #include "../../include/execution_type/threaded_executor.hpp"
 #include "../../include/toy/toy_constants.hpp"
@@ -102,18 +103,18 @@ void ExecutionContext::run() {
 }
 
 void ExecutionContext::executeBlock(const TIBasicBlock &Block) {
-  if (Mode == TIExecutionMode::SWITCH) {
-    try {
-      executeSwitchBlock(*this, Block);
-    } catch (const SimulationException &) {
-      State.fault();
-      throw;
-    }
-    return;
-  }
-
   try {
-    executeThreadedBlock(*this, Block);
+    switch (Mode) {
+    case TIExecutionMode::SWITCH:
+      executeSwitchBlock(*this, Block);
+      return;
+    case TIExecutionMode::JIT:
+      executeJitBlock(*this, Block);
+      return;
+    case TIExecutionMode::THREADED:
+      executeThreadedBlock(*this, Block);
+      return;
+    }
   } catch (const SimulationException &) {
     State.fault();
     throw;
