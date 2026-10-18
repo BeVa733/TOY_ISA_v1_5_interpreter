@@ -3,8 +3,10 @@
 #include <cstdint>
 #include <vector>
 
-struct TIThreadState;
-using TIThreadedHandler = void (*)(TIThreadState &);
+class ExecutionContext;
+struct TIInstruction;
+using TIThreadedHandler = void (*)(ExecutionContext &, const TIInstruction *,
+                                   const TIInstruction *);
 
 // Internal operation identifiers, not ISA bit encodings.
 enum class TIOpcode : uint8_t {

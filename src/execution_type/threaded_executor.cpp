@@ -23,17 +23,18 @@
 
 namespace {
 
-#define DISPATCH_NEXT(Thread)                                                  \
-  ++(Thread).Current;                                                          \
-  if ((Thread).Current == (Thread).End) {                                      \
+#define DISPATCH_NEXT(Context, Current, End)                                   \
+  ++Current;                                                                   \
+  if (Current == End) {                                                        \
     return;                                                                    \
   }                                                                            \
-  TI_MUSTTAIL return (Thread).Current->ThreadedHandler(Thread)
+  TI_MUSTTAIL return Current->ThreadedHandler(Context, Current, End)
 
 #define DEFINE_THREADED_HANDLER(Name)                                          \
-  void threaded##Name(TIThreadState &Thread) {                                 \
-    execute##Name(Thread.Context, *Thread.Current);                            \
-    DISPATCH_NEXT(Thread);                                                     \
+  void threaded##Name(ExecutionContext &Context, const TIInstruction *Current, \
+                      const TIInstruction *End) {                              \
+    execute##Name(Context, *Current);                                          \
+    DISPATCH_NEXT(Context, Current, End);                                      \
   }
 
 DEFINE_THREADED_HANDLER(Li)
@@ -49,17 +50,21 @@ DEFINE_THREADED_HANDLER(Ssat)
 DEFINE_THREADED_HANDLER(Rori)
 DEFINE_THREADED_HANDLER(Bext)
 
-void threadedBeq(TIThreadState &Thread) {
-  executeBeq(Thread.Context, *Thread.Current);
+void threadedBeq(ExecutionContext &Context, const TIInstruction *Current,
+                 const TIInstruction *) {
+  executeBeq(Context, *Current);
 }
-void threadedJ(TIThreadState &Thread) {
-  executeJ(Thread.Context, *Thread.Current);
+void threadedJ(ExecutionContext &Context, const TIInstruction *Current,
+               const TIInstruction *) {
+  executeJ(Context, *Current);
 }
-void threadedSyscall(TIThreadState &Thread) {
-  executeSyscall(Thread.Context, *Thread.Current);
+void threadedSyscall(ExecutionContext &Context, const TIInstruction *Current,
+                     const TIInstruction *) {
+  executeSyscall(Context, *Current);
 }
-void threadedInvalid(TIThreadState &Thread) {
-  executeInvalid(Thread.Context, *Thread.Current);
+void threadedInvalid(ExecutionContext &Context, const TIInstruction *Current,
+                     const TIInstruction *) {
+  executeInvalid(Context, *Current);
 }
 
 } // namespace
@@ -104,10 +109,10 @@ TIThreadedHandler getThreadedHandler(TIOpcode OpCode) {
 
 void executeThreadedBlock(ExecutionContext &Context,
                           const TIBasicBlock &Block) {
-  const auto &Instructions = Block.instructions();
-  TIThreadState Thread(Context, Instructions.data(),
-                       Instructions.data() + Instructions.size());
-  Thread.Current->ThreadedHandler(Thread);
+  const auto &Instructions     = Block.instructions();
+  const TIInstruction *Current = Instructions.data();
+  const TIInstruction *End     = Current + Instructions.size();
+  Current->ThreadedHandler(Context, Current, End);
 }
 
 #undef DEFINE_THREADED_HANDLER

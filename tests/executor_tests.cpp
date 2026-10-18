@@ -8,12 +8,10 @@
 
 namespace {
 
-void executeInstruction(ExecutionContext &Context,
-                        TIInstruction Instruction) {
+void executeInstruction(ExecutionContext &Context, TIInstruction Instruction) {
   Instruction.ThreadedHandler = getThreadedHandler(Instruction.OpCode);
 
-  TIThreadState Thread(Context, &Instruction, &Instruction + 1);
-  Instruction.ThreadedHandler(Thread);
+  Instruction.ThreadedHandler(Context, &Instruction, &Instruction + 1);
 }
 
 void testLi() {
@@ -21,11 +19,10 @@ void testLi() {
   TICpuState &Cpu = Context.cpu();
 
   executeInstruction(
-      Context,
-      {
-          TIOpcode::LI,
-          {{OperandType::REGISTER, 31},
-                {OperandType::IMMEDIATE, static_cast<uint32_t>(-1)}}
+      Context, {
+                   TIOpcode::LI,
+                   {{OperandType::REGISTER, 31},
+                         {OperandType::IMMEDIATE, static_cast<uint32_t>(-1)}}
   });
 
   require(Cpu.Registers[31] == 0xFFFFFFFF, "LI failed");
@@ -34,75 +31,70 @@ void testLi() {
 
 void testAdd() {
   ExecutionContext Context(64);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   Cpu.Registers[1] = 0xFFFFFFFF;
   Cpu.Registers[2] = 1;
 
-  executeInstruction(Context,
-                     {
-                         TIOpcode::ADD,
-                         {{OperandType::REGISTER, 3},
-                                {OperandType::REGISTER, 1},
-                                {OperandType::REGISTER, 2}}
+  executeInstruction(Context, {
+                                  TIOpcode::ADD,
+                                  {{OperandType::REGISTER, 3},
+                                         {OperandType::REGISTER, 1},
+                                         {OperandType::REGISTER, 2}}
   });
 
   require(Cpu.Registers[3] == 0, "ADD wraparound failed");
 
   ExecutionContext RegularContext(64);
-  TICpuState &Regular = RegularContext.cpu();
+  TICpuState &Regular  = RegularContext.cpu();
   Regular.Registers[1] = 10;
   Regular.Registers[2] = 20;
-  executeInstruction(RegularContext,
-                     {
-                         TIOpcode::ADD,
-                         {{OperandType::REGISTER, 3},
-                                {OperandType::REGISTER, 1},
-                                {OperandType::REGISTER, 2}}
+  executeInstruction(RegularContext, {
+                                         TIOpcode::ADD,
+                                         {{OperandType::REGISTER, 3},
+                                                {OperandType::REGISTER, 1},
+                                                {OperandType::REGISTER, 2}}
   });
   require(Regular.Registers[3] == 30, "ADD regular operation failed");
 }
 
 void testAddi() {
   ExecutionContext Context(64);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   Cpu.Registers[1] = 5;
 
   executeInstruction(
-      Context,
-      {
-          TIOpcode::ADDI,
-          {{OperandType::REGISTER, 2},
-                  {OperandType::REGISTER, 1},
-                  {OperandType::IMMEDIATE, static_cast<uint32_t>(-7)}}
+      Context, {
+                   TIOpcode::ADDI,
+                   {{OperandType::REGISTER, 2},
+                           {OperandType::REGISTER, 1},
+                           {OperandType::IMMEDIATE, static_cast<uint32_t>(-7)}}
   });
 
   require(Cpu.Registers[2] == 0xFFFFFFFE, "ADDI failed");
 
   ExecutionContext RegularContext(64);
-  TICpuState &Regular = RegularContext.cpu();
+  TICpuState &Regular  = RegularContext.cpu();
   Regular.Registers[1] = 5;
-  executeInstruction(RegularContext,
-                     {
-                         TIOpcode::ADDI,
-                         {{OperandType::REGISTER, 2},
-                                 {OperandType::REGISTER, 1},
-                                 {OperandType::IMMEDIATE, 7}}
+  executeInstruction(RegularContext, {
+                                         TIOpcode::ADDI,
+                                         {{OperandType::REGISTER, 2},
+                                                 {OperandType::REGISTER, 1},
+                                                 {OperandType::IMMEDIATE, 7}}
   });
   require(Regular.Registers[2] == 12, "ADDI regular operation failed");
 }
 
 void testOr() {
   ExecutionContext Context(64);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   Cpu.Registers[1] = 0x0F00;
   Cpu.Registers[2] = 0x00F0;
 
-  executeInstruction(Context,
-                     {
-                         TIOpcode::OR,
-                         {{OperandType::REGISTER, 3},
-                               {OperandType::REGISTER, 1},
-                               {OperandType::REGISTER, 2}}
+  executeInstruction(Context, {
+                                  TIOpcode::OR,
+                                  {{OperandType::REGISTER, 3},
+                                        {OperandType::REGISTER, 1},
+                                        {OperandType::REGISTER, 2}}
   });
 
   require(Cpu.Registers[3] == 0x0FF0, "OR failed");
@@ -110,18 +102,17 @@ void testOr() {
 
 void testSt() {
   ExecutionContext Context(128);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   TIMemory &Memory = Context.memory();
   Cpu.Registers[1] = 80;
   Cpu.Registers[2] = 0x1234;
 
   executeInstruction(
-      Context,
-      {
-          TIOpcode::ST,
-          {{OperandType::REGISTER, 2},
-                {OperandType::REGISTER, 1},
-                {OperandType::IMMEDIATE, static_cast<uint32_t>(-4)}}
+      Context, {
+                   TIOpcode::ST,
+                   {{OperandType::REGISTER, 2},
+                         {OperandType::REGISTER, 1},
+                         {OperandType::IMMEDIATE, static_cast<uint32_t>(-4)}}
   });
 
   require(Memory.read32(76) == 0x1234, "ST failed");
@@ -129,18 +120,17 @@ void testSt() {
 
 void testLdImmediate() {
   ExecutionContext Context(128);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   TIMemory &Memory = Context.memory();
   Cpu.Registers[1] = 80;
   Memory.write32(76, 0x2345);
 
   executeInstruction(
-      Context,
-      {
-          TIOpcode::LDimm,
-          {{OperandType::REGISTER, 3},
-                   {OperandType::REGISTER, 1},
-                   {OperandType::IMMEDIATE, static_cast<uint32_t>(-4)}}
+      Context, {
+                   TIOpcode::LDimm,
+                   {{OperandType::REGISTER, 3},
+                            {OperandType::REGISTER, 1},
+                            {OperandType::IMMEDIATE, static_cast<uint32_t>(-4)}}
   });
 
   require(Cpu.Registers[3] == 0x2345, "LD immediate failed");
@@ -148,18 +138,17 @@ void testLdImmediate() {
 
 void testLdRegister() {
   ExecutionContext Context(128);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   TIMemory &Memory = Context.memory();
   Cpu.Registers[1] = 80;
   Cpu.Registers[3] = 4;
   Memory.write32(84, 0x3456);
 
-  executeInstruction(Context,
-                     {
-                         TIOpcode::LDreg,
-                         {{OperandType::REGISTER, 4},
-                                  {OperandType::REGISTER, 1},
-                                  {OperandType::REGISTER, 3}}
+  executeInstruction(Context, {
+                                  TIOpcode::LDreg,
+                                  {{OperandType::REGISTER, 4},
+                                           {OperandType::REGISTER, 1},
+                                           {OperandType::REGISTER, 3}}
   });
 
   require(Cpu.Registers[4] == 0x3456, "LD register failed");
@@ -167,19 +156,18 @@ void testLdRegister() {
 
 void testStp() {
   ExecutionContext Context(128);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   TIMemory &Memory = Context.memory();
   Cpu.Registers[1] = 80;
   Cpu.Registers[2] = 0x1111;
   Cpu.Registers[3] = 0x2222;
 
-  executeInstruction(Context,
-                     {
-                         TIOpcode::STP,
-                         {{OperandType::REGISTER, 2},
-                                {OperandType::REGISTER, 3},
-                                {OperandType::REGISTER, 1},
-                                {OperandType::IMMEDIATE, 4}}
+  executeInstruction(Context, {
+                                  TIOpcode::STP,
+                                  {{OperandType::REGISTER, 2},
+                                         {OperandType::REGISTER, 3},
+                                         {OperandType::REGISTER, 1},
+                                         {OperandType::IMMEDIATE, 4}}
   });
 
   require(Memory.read32(84) == 0x1111, "STP first word failed");
@@ -188,45 +176,42 @@ void testStp() {
 
 void testBeq() {
   ExecutionContext TakenContext(64);
-  TICpuState &Taken = TakenContext.cpu();
+  TICpuState &Taken  = TakenContext.cpu();
   Taken.PC           = 8;
   Taken.Registers[1] = 7;
   Taken.Registers[2] = 7;
-  executeInstruction(TakenContext,
-                     {
-                         TIOpcode::BEQ,
-                         {{OperandType::REGISTER, 1},
-                                {OperandType::REGISTER, 2},
-                                {OperandType::IMMEDIATE, 2}}
+  executeInstruction(TakenContext, {
+                                       TIOpcode::BEQ,
+                                       {{OperandType::REGISTER, 1},
+                                              {OperandType::REGISTER, 2},
+                                              {OperandType::IMMEDIATE, 2}}
   });
   require(Taken.PC == 16, "BEQ taken failed");
 
   ExecutionContext NotTakenContext(64);
-  TICpuState &NotTaken = NotTakenContext.cpu();
+  TICpuState &NotTaken  = NotTakenContext.cpu();
   NotTaken.PC           = 8;
   NotTaken.Registers[1] = 7;
   NotTaken.Registers[2] = 8;
-  executeInstruction(NotTakenContext,
-                     {
-                         TIOpcode::BEQ,
-                         {{OperandType::REGISTER, 1},
-                                {OperandType::REGISTER, 2},
-                                {OperandType::IMMEDIATE, 2}}
+  executeInstruction(NotTakenContext, {
+                                          TIOpcode::BEQ,
+                                          {{OperandType::REGISTER, 1},
+                                                 {OperandType::REGISTER, 2},
+                                                 {OperandType::IMMEDIATE, 2}}
   });
   require(NotTaken.PC == 12, "BEQ not taken failed");
 
   ExecutionContext BackwardContext(64);
-  TICpuState &Backward = BackwardContext.cpu();
+  TICpuState &Backward  = BackwardContext.cpu();
   Backward.PC           = 8;
   Backward.Registers[1] = 7;
   Backward.Registers[2] = 7;
-  executeInstruction(
-      BackwardContext,
-      {
-          TIOpcode::BEQ,
-          {{OperandType::REGISTER, 1},
-                 {OperandType::REGISTER, 2},
-                 {OperandType::IMMEDIATE, static_cast<uint32_t>(-1)}}
+  executeInstruction(BackwardContext, {
+                                          TIOpcode::BEQ,
+                                          {{OperandType::REGISTER, 1},
+                                                 {OperandType::REGISTER, 2},
+                                                 {OperandType::IMMEDIATE,
+                                            static_cast<uint32_t>(-1)}}
   });
   require(Backward.PC == 4, "BEQ backward branch failed");
 }
@@ -234,7 +219,7 @@ void testBeq() {
 void testJ() {
   ExecutionContext Context(64);
   TICpuState &Cpu = Context.cpu();
-  Cpu.PC = 0xA0000000;
+  Cpu.PC          = 0xA0000000;
 
   executeInstruction(Context, {TIOpcode::J, {{OperandType::IMMEDIATE, 5}}});
 
@@ -246,24 +231,21 @@ void testClz() {
   TICpuState &Cpu = Context.cpu();
 
   executeInstruction(
-      Context,
-      {
-          TIOpcode::CLZ,
-          {{OperandType::REGISTER, 1}, {OperandType::REGISTER, 0}}
+      Context, {
+                   TIOpcode::CLZ,
+                   {{OperandType::REGISTER, 1}, {OperandType::REGISTER, 0}}
   });
   Cpu.Registers[2] = 1;
   executeInstruction(
-      Context,
-      {
-          TIOpcode::CLZ,
-          {{OperandType::REGISTER, 3}, {OperandType::REGISTER, 2}}
+      Context, {
+                   TIOpcode::CLZ,
+                   {{OperandType::REGISTER, 3}, {OperandType::REGISTER, 2}}
   });
   Cpu.Registers[4] = 0xFFFFFFFF;
   executeInstruction(
-      Context,
-      {
-          TIOpcode::CLZ,
-          {{OperandType::REGISTER, 5}, {OperandType::REGISTER, 4}}
+      Context, {
+                   TIOpcode::CLZ,
+                   {{OperandType::REGISTER, 5}, {OperandType::REGISTER, 4}}
   });
 
   require(Cpu.Registers[1] == TI32::WORD_BIT_COUNT, "CLZ zero failed");
@@ -273,31 +255,28 @@ void testClz() {
 
 void testSsat() {
   ExecutionContext Context(64);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   Cpu.Registers[1] = 200;
   Cpu.Registers[3] = static_cast<uint32_t>(-200);
   Cpu.Registers[5] = 50;
 
-  executeInstruction(Context,
-                     {
-                         TIOpcode::SSAT,
-                         {{OperandType::REGISTER, 2},
-                                 {OperandType::REGISTER, 1},
-                                 {OperandType::IMMEDIATE, 8}}
+  executeInstruction(Context, {
+                                  TIOpcode::SSAT,
+                                  {{OperandType::REGISTER, 2},
+                                          {OperandType::REGISTER, 1},
+                                          {OperandType::IMMEDIATE, 8}}
   });
-  executeInstruction(Context,
-                     {
-                         TIOpcode::SSAT,
-                         {{OperandType::REGISTER, 4},
-                                 {OperandType::REGISTER, 3},
-                                 {OperandType::IMMEDIATE, 8}}
+  executeInstruction(Context, {
+                                  TIOpcode::SSAT,
+                                  {{OperandType::REGISTER, 4},
+                                          {OperandType::REGISTER, 3},
+                                          {OperandType::IMMEDIATE, 8}}
   });
-  executeInstruction(Context,
-                     {
-                         TIOpcode::SSAT,
-                         {{OperandType::REGISTER, 6},
-                                 {OperandType::REGISTER, 5},
-                                 {OperandType::IMMEDIATE, 8}}
+  executeInstruction(Context, {
+                                  TIOpcode::SSAT,
+                                  {{OperandType::REGISTER, 6},
+                                          {OperandType::REGISTER, 5},
+                                          {OperandType::IMMEDIATE, 8}}
   });
 
   require(Cpu.Registers[2] == 127, "SSAT upper bound failed");
@@ -307,29 +286,26 @@ void testSsat() {
 
 void testRori() {
   ExecutionContext Context(64);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   Cpu.Registers[1] = 1;
 
-  executeInstruction(Context,
-                     {
-                         TIOpcode::RORI,
-                         {{OperandType::REGISTER, 2},
-                                 {OperandType::REGISTER, 1},
-                                 {OperandType::IMMEDIATE, 1}}
+  executeInstruction(Context, {
+                                  TIOpcode::RORI,
+                                  {{OperandType::REGISTER, 2},
+                                          {OperandType::REGISTER, 1},
+                                          {OperandType::IMMEDIATE, 1}}
   });
-  executeInstruction(Context,
-                     {
-                         TIOpcode::RORI,
-                         {{OperandType::REGISTER, 3},
-                                 {OperandType::REGISTER, 1},
-                                 {OperandType::IMMEDIATE, 0}}
+  executeInstruction(Context, {
+                                  TIOpcode::RORI,
+                                  {{OperandType::REGISTER, 3},
+                                          {OperandType::REGISTER, 1},
+                                          {OperandType::IMMEDIATE, 0}}
   });
-  executeInstruction(Context,
-                     {
-                         TIOpcode::RORI,
-                         {{OperandType::REGISTER, 4},
-                                 {OperandType::REGISTER, 1},
-                                 {OperandType::IMMEDIATE, 31}}
+  executeInstruction(Context, {
+                                  TIOpcode::RORI,
+                                  {{OperandType::REGISTER, 4},
+                                          {OperandType::REGISTER, 1},
+                                          {OperandType::IMMEDIATE, 31}}
   });
 
   require(Cpu.Registers[2] == 0x80000000, "RORI one failed");
@@ -339,16 +315,15 @@ void testRori() {
 
 void testBext() {
   ExecutionContext Context(64);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu  = Context.cpu();
   Cpu.Registers[1] = 0x00D6;
   Cpu.Registers[2] = 0x00AC;
 
-  executeInstruction(Context,
-                     {
-                         TIOpcode::BEXT,
-                         {{OperandType::REGISTER, 3},
-                                 {OperandType::REGISTER, 1},
-                                 {OperandType::REGISTER, 2}}
+  executeInstruction(Context, {
+                                  TIOpcode::BEXT,
+                                  {{OperandType::REGISTER, 3},
+                                          {OperandType::REGISTER, 1},
+                                          {OperandType::REGISTER, 2}}
   });
 
   require(Cpu.Registers[3] == 9, "BEXT failed");
@@ -356,10 +331,10 @@ void testBext() {
 
 void testSyscall() {
   ExecutionContext Context(64);
-  TICpuState &Cpu = Context.cpu();
+  TICpuState &Cpu         = Context.cpu();
   TIExecutionState &State = Context.state();
-  Cpu.Registers[8] = 60;
-  Cpu.Registers[0] = 42;
+  Cpu.Registers[8]        = 60;
+  Cpu.Registers[0]        = 42;
 
   executeInstruction(Context, {TIOpcode::SYSCALL, {}});
 
@@ -367,14 +342,12 @@ void testSyscall() {
   require(State.ExitCode == 42, "exit returned incorrect code");
 
   ExecutionContext UnsupportedContext(64);
-  TICpuState &UnsupportedCpu = UnsupportedContext.cpu();
+  TICpuState &UnsupportedCpu  = UnsupportedContext.cpu();
   UnsupportedCpu.Registers[8] = 999;
 
   requireError(
       ErrorCode::UNSUPPORTED_SYSCALL,
-      [&] {
-        executeInstruction(UnsupportedContext, {TIOpcode::SYSCALL, {}});
-      },
+      [&] { executeInstruction(UnsupportedContext, {TIOpcode::SYSCALL, {}}); },
       "Unsupported syscall");
 }
 
