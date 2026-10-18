@@ -1,4 +1,5 @@
-#include "../include/toy/executor.hpp"
+#include "../include/execution_type/threaded_executor.hpp"
+#include "../include/toy/execution_context.hpp"
 #include "test_utils.hpp"
 
 #include <cstdint>
@@ -7,28 +8,20 @@
 
 namespace {
 
-void executeInstruction(TICpuState &Cpu, TIMemory &Memory,
-                        TIExecutionState &State, TIInstruction Instruction) {
-  TISyscallEmulator SyscallEmulator{};
-  Instruction.Execute = getExecuteHandler(Instruction.OpCode);
-
-  TIThreadState Thread(Cpu, Memory, State, SyscallEmulator, &Instruction,
-                       &Instruction + 1);
-  Instruction.Execute(Thread);
-}
-
-void executeInstruction(TICpuState &Cpu, TIMemory &Memory,
+void executeInstruction(ExecutionContext &Context,
                         TIInstruction Instruction) {
-  TIExecutionState State{};
-  executeInstruction(Cpu, Memory, State, Instruction);
+  Instruction.ThreadedHandler = getThreadedHandler(Instruction.OpCode);
+
+  TIThreadState Thread(Context, &Instruction, &Instruction + 1);
+  Instruction.ThreadedHandler(Thread);
 }
 
 void testLi() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
 
   executeInstruction(
-      Cpu, Memory,
+      Context,
       {
           TIOpcode::LI,
           {{OperandType::REGISTER, 31},
@@ -40,12 +33,12 @@ void testLi() {
 }
 
 void testAdd() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
   Cpu.Registers[1] = 0xFFFFFFFF;
   Cpu.Registers[2] = 1;
 
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::ADD,
                          {{OperandType::REGISTER, 3},
@@ -55,10 +48,11 @@ void testAdd() {
 
   require(Cpu.Registers[3] == 0, "ADD wraparound failed");
 
-  TICpuState Regular{};
+  ExecutionContext RegularContext(64);
+  TICpuState &Regular = RegularContext.cpu();
   Regular.Registers[1] = 10;
   Regular.Registers[2] = 20;
-  executeInstruction(Regular, Memory,
+  executeInstruction(RegularContext,
                      {
                          TIOpcode::ADD,
                          {{OperandType::REGISTER, 3},
@@ -69,12 +63,12 @@ void testAdd() {
 }
 
 void testAddi() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
   Cpu.Registers[1] = 5;
 
   executeInstruction(
-      Cpu, Memory,
+      Context,
       {
           TIOpcode::ADDI,
           {{OperandType::REGISTER, 2},
@@ -84,9 +78,10 @@ void testAddi() {
 
   require(Cpu.Registers[2] == 0xFFFFFFFE, "ADDI failed");
 
-  TICpuState Regular{};
+  ExecutionContext RegularContext(64);
+  TICpuState &Regular = RegularContext.cpu();
   Regular.Registers[1] = 5;
-  executeInstruction(Regular, Memory,
+  executeInstruction(RegularContext,
                      {
                          TIOpcode::ADDI,
                          {{OperandType::REGISTER, 2},
@@ -97,12 +92,12 @@ void testAddi() {
 }
 
 void testOr() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
   Cpu.Registers[1] = 0x0F00;
   Cpu.Registers[2] = 0x00F0;
 
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::OR,
                          {{OperandType::REGISTER, 3},
@@ -114,13 +109,14 @@ void testOr() {
 }
 
 void testSt() {
-  TICpuState Cpu{};
-  TIMemory Memory(128);
+  ExecutionContext Context(128);
+  TICpuState &Cpu = Context.cpu();
+  TIMemory &Memory = Context.memory();
   Cpu.Registers[1] = 80;
   Cpu.Registers[2] = 0x1234;
 
   executeInstruction(
-      Cpu, Memory,
+      Context,
       {
           TIOpcode::ST,
           {{OperandType::REGISTER, 2},
@@ -132,13 +128,14 @@ void testSt() {
 }
 
 void testLdImmediate() {
-  TICpuState Cpu{};
-  TIMemory Memory(128);
+  ExecutionContext Context(128);
+  TICpuState &Cpu = Context.cpu();
+  TIMemory &Memory = Context.memory();
   Cpu.Registers[1] = 80;
   Memory.write32(76, 0x2345);
 
   executeInstruction(
-      Cpu, Memory,
+      Context,
       {
           TIOpcode::LDimm,
           {{OperandType::REGISTER, 3},
@@ -150,13 +147,14 @@ void testLdImmediate() {
 }
 
 void testLdRegister() {
-  TICpuState Cpu{};
-  TIMemory Memory(128);
+  ExecutionContext Context(128);
+  TICpuState &Cpu = Context.cpu();
+  TIMemory &Memory = Context.memory();
   Cpu.Registers[1] = 80;
   Cpu.Registers[3] = 4;
   Memory.write32(84, 0x3456);
 
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::LDreg,
                          {{OperandType::REGISTER, 4},
@@ -168,13 +166,14 @@ void testLdRegister() {
 }
 
 void testStp() {
-  TICpuState Cpu{};
-  TIMemory Memory(128);
+  ExecutionContext Context(128);
+  TICpuState &Cpu = Context.cpu();
+  TIMemory &Memory = Context.memory();
   Cpu.Registers[1] = 80;
   Cpu.Registers[2] = 0x1111;
   Cpu.Registers[3] = 0x2222;
 
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::STP,
                          {{OperandType::REGISTER, 2},
@@ -188,13 +187,12 @@ void testStp() {
 }
 
 void testBeq() {
-  TIMemory Memory(64);
-
-  TICpuState Taken{};
+  ExecutionContext TakenContext(64);
+  TICpuState &Taken = TakenContext.cpu();
   Taken.PC           = 8;
   Taken.Registers[1] = 7;
   Taken.Registers[2] = 7;
-  executeInstruction(Taken, Memory,
+  executeInstruction(TakenContext,
                      {
                          TIOpcode::BEQ,
                          {{OperandType::REGISTER, 1},
@@ -203,11 +201,12 @@ void testBeq() {
   });
   require(Taken.PC == 16, "BEQ taken failed");
 
-  TICpuState NotTaken{};
+  ExecutionContext NotTakenContext(64);
+  TICpuState &NotTaken = NotTakenContext.cpu();
   NotTaken.PC           = 8;
   NotTaken.Registers[1] = 7;
   NotTaken.Registers[2] = 8;
-  executeInstruction(NotTaken, Memory,
+  executeInstruction(NotTakenContext,
                      {
                          TIOpcode::BEQ,
                          {{OperandType::REGISTER, 1},
@@ -216,12 +215,13 @@ void testBeq() {
   });
   require(NotTaken.PC == 12, "BEQ not taken failed");
 
-  TICpuState Backward{};
+  ExecutionContext BackwardContext(64);
+  TICpuState &Backward = BackwardContext.cpu();
   Backward.PC           = 8;
   Backward.Registers[1] = 7;
   Backward.Registers[2] = 7;
   executeInstruction(
-      Backward, Memory,
+      BackwardContext,
       {
           TIOpcode::BEQ,
           {{OperandType::REGISTER, 1},
@@ -232,35 +232,35 @@ void testBeq() {
 }
 
 void testJ() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
   Cpu.PC = 0xA0000000;
 
-  executeInstruction(Cpu, Memory, {TIOpcode::J, {{OperandType::IMMEDIATE, 5}}});
+  executeInstruction(Context, {TIOpcode::J, {{OperandType::IMMEDIATE, 5}}});
 
   require(Cpu.PC == 0xA0000014, "J failed");
 }
 
 void testClz() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
 
   executeInstruction(
-      Cpu, Memory,
+      Context,
       {
           TIOpcode::CLZ,
           {{OperandType::REGISTER, 1}, {OperandType::REGISTER, 0}}
   });
   Cpu.Registers[2] = 1;
   executeInstruction(
-      Cpu, Memory,
+      Context,
       {
           TIOpcode::CLZ,
           {{OperandType::REGISTER, 3}, {OperandType::REGISTER, 2}}
   });
   Cpu.Registers[4] = 0xFFFFFFFF;
   executeInstruction(
-      Cpu, Memory,
+      Context,
       {
           TIOpcode::CLZ,
           {{OperandType::REGISTER, 5}, {OperandType::REGISTER, 4}}
@@ -272,27 +272,27 @@ void testClz() {
 }
 
 void testSsat() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
   Cpu.Registers[1] = 200;
   Cpu.Registers[3] = static_cast<uint32_t>(-200);
   Cpu.Registers[5] = 50;
 
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::SSAT,
                          {{OperandType::REGISTER, 2},
                                  {OperandType::REGISTER, 1},
                                  {OperandType::IMMEDIATE, 8}}
   });
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::SSAT,
                          {{OperandType::REGISTER, 4},
                                  {OperandType::REGISTER, 3},
                                  {OperandType::IMMEDIATE, 8}}
   });
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::SSAT,
                          {{OperandType::REGISTER, 6},
@@ -306,25 +306,25 @@ void testSsat() {
 }
 
 void testRori() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
   Cpu.Registers[1] = 1;
 
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::RORI,
                          {{OperandType::REGISTER, 2},
                                  {OperandType::REGISTER, 1},
                                  {OperandType::IMMEDIATE, 1}}
   });
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::RORI,
                          {{OperandType::REGISTER, 3},
                                  {OperandType::REGISTER, 1},
                                  {OperandType::IMMEDIATE, 0}}
   });
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::RORI,
                          {{OperandType::REGISTER, 4},
@@ -338,12 +338,12 @@ void testRori() {
 }
 
 void testBext() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
   Cpu.Registers[1] = 0x00D6;
   Cpu.Registers[2] = 0x00AC;
 
-  executeInstruction(Cpu, Memory,
+  executeInstruction(Context,
                      {
                          TIOpcode::BEXT,
                          {{OperandType::REGISTER, 3},
@@ -355,26 +355,25 @@ void testBext() {
 }
 
 void testSyscall() {
-  TICpuState Cpu{};
-  TIMemory Memory(64);
-  TIExecutionState State{};
+  ExecutionContext Context(64);
+  TICpuState &Cpu = Context.cpu();
+  TIExecutionState &State = Context.state();
   Cpu.Registers[8] = 60;
   Cpu.Registers[0] = 42;
 
-  executeInstruction(Cpu, Memory, State, {TIOpcode::SYSCALL, {}});
+  executeInstruction(Context, {TIOpcode::SYSCALL, {}});
 
   require(State.Status == ExecutionStatus::HALTED, "exit did not halt");
   require(State.ExitCode == 42, "exit returned incorrect code");
 
-  TICpuState UnsupportedCpu{};
-  TIExecutionState UnsupportedState{};
+  ExecutionContext UnsupportedContext(64);
+  TICpuState &UnsupportedCpu = UnsupportedContext.cpu();
   UnsupportedCpu.Registers[8] = 999;
 
   requireError(
       ErrorCode::UNSUPPORTED_SYSCALL,
       [&] {
-        executeInstruction(UnsupportedCpu, Memory, UnsupportedState,
-                           {TIOpcode::SYSCALL, {}});
+        executeInstruction(UnsupportedContext, {TIOpcode::SYSCALL, {}});
       },
       "Unsupported syscall");
 }

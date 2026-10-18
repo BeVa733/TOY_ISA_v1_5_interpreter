@@ -1,35 +1,8 @@
 #include "../../include/toy/executor.hpp"
+#include "../../include/toy/execution_context.hpp"
 #include "../../include/toy/toy_constants.hpp"
 
-// Threded code requires musttail attribute
-
-#if defined(__clang__)
-#if __has_cpp_attribute(clang::musttail)
-#define TI_MUSTTAIL [[clang::musttail]]
-#else
-#error "Clang does not support [[clang::musttail]]"
-#endif
-
-#elif defined(__GNUC__)
-#if __has_cpp_attribute(gnu::musttail)
-#define TI_MUSTTAIL [[gnu::musttail]]
-#else
-#error "GCC does not support [[gnu::musttail]]"
-#endif
-
-#else
-#error "Threaded execution requires a compiler with musttail support"
-#endif
-
 namespace {
-
-#define DISPATCH_NEXT(Thread)                                                  \
-  Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;                                     \
-  ++(Thread).Current;                                                          \
-  if ((Thread).Current == (Thread).End) {                                      \
-    return;                                                                    \
-  }                                                                            \
-  TI_MUSTTAIL return (Thread).Current->Execute(Thread)
 
 uint32_t countLeadingZeros(uint32_t Value) {
   uint32_t Count = 0;
@@ -76,210 +49,147 @@ uint32_t compressBits(uint32_t Value, uint32_t Mask) {
   return Result;
 }
 
-void executeLi(TIThreadState &Thread) {
-  const auto &Operands                    = Thread.Current->Operands;
-  Thread.Cpu.Registers[Operands[0].Value] = Operands[1].Value;
-  DISPATCH_NEXT(Thread);
-}
-
-void executeAdd(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  Registers[Operands[0].Value] =
-      Registers[Operands[1].Value] + Registers[Operands[2].Value];
-  DISPATCH_NEXT(Thread);
-}
-
-void executeAddi(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  Registers[Operands[0].Value] =
-      Registers[Operands[1].Value] + Operands[2].Value;
-  DISPATCH_NEXT(Thread);
-}
-
-void executeOr(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  Registers[Operands[0].Value] =
-      Registers[Operands[1].Value] | Registers[Operands[2].Value];
-  DISPATCH_NEXT(Thread);
-}
-
-void executeLdReg(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  uint32_t Address =
-      Registers[Operands[1].Value] + Registers[Operands[2].Value];
-  Registers[Operands[0].Value] = Thread.Memory.read32(Address);
-  DISPATCH_NEXT(Thread);
-}
-
-void executeLdImm(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  uint32_t Address     = Registers[Operands[1].Value] + Operands[2].Value;
-  Registers[Operands[0].Value] = Thread.Memory.read32(Address);
-  DISPATCH_NEXT(Thread);
-}
-
-void executeSt(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  uint32_t Address     = Registers[Operands[1].Value] + Operands[2].Value;
-  Thread.Memory.write32(Address, Registers[Operands[0].Value]);
-  DISPATCH_NEXT(Thread);
-}
-
-void executeStp(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  uint32_t Address     = Registers[Operands[2].Value] + Operands[3].Value;
-
-  Thread.Memory.write32(Address, Registers[Operands[0].Value]);
-  Thread.Memory.write32(Address + TI32::WORD_SIZE,
-                        Registers[Operands[1].Value]);
-
-  DISPATCH_NEXT(Thread);
-}
-
-void executeBeq(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  if (Registers[Operands[0].Value] == Registers[Operands[1].Value]) {
-    Thread.Cpu.PC += Operands[2].Value * TI32::INSTRUCTION_SIZE;
-  } else {
-    Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
-  }
-}
-
-void executeJ(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  Thread.Cpu.PC        = (Thread.Cpu.PC & 0xF0000000) |
-                         (Operands[0].Value * TI32::INSTRUCTION_SIZE);
-}
-
-void executeClz(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  Registers[Operands[0].Value] =
-      countLeadingZeros(Registers[Operands[1].Value]);
-  DISPATCH_NEXT(Thread);
-}
-
-void executeSsat(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  Registers[Operands[0].Value] =
-      saturateSigned(Registers[Operands[1].Value], Operands[2].Value);
-  DISPATCH_NEXT(Thread);
-}
-
-void executeRori(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  Registers[Operands[0].Value] =
-      rotateRight(Registers[Operands[1].Value], Operands[2].Value);
-  DISPATCH_NEXT(Thread);
-}
-
-void executeBext(TIThreadState &Thread) {
-  const auto &Operands = Thread.Current->Operands;
-  auto &Registers      = Thread.Cpu.Registers;
-  Registers[Operands[0].Value] =
-      compressBits(Registers[Operands[1].Value], Registers[Operands[2].Value]);
-  DISPATCH_NEXT(Thread);
-}
-
-void executeSyscall(TIThreadState &Thread) {
-  Thread.SyscallEmulator.execute(Thread.Cpu, Thread.Memory, Thread.State);
-  if (Thread.State.Status == ExecutionStatus::RUNNING) {
-    Thread.Cpu.PC += TI32::INSTRUCTION_SIZE;
-  }
-}
-
-void executeInvalid(TIThreadState &) {
-  throw SimulationException(ErrorCode::INVALID_INSTRUCTION,
-                            "[EXECUTE] Invalid instruction");
-}
-
-#undef DISPATCH_NEXT
-#undef TI_MUSTTAIL
-
 } // namespace
 
-TIExecuteHandler getExecuteHandler(TIOpcode OpCode) {
-  switch (OpCode) {
-  case TIOpcode::LI:
-    return executeLi;
-  case TIOpcode::ADD:
-    return executeAdd;
-  case TIOpcode::ADDI:
-    return executeAddi;
-  case TIOpcode::OR:
-    return executeOr;
-  case TIOpcode::LDreg:
-    return executeLdReg;
-  case TIOpcode::ST:
-    return executeSt;
-  case TIOpcode::STP:
-    return executeStp;
-  case TIOpcode::BEQ:
-    return executeBeq;
-  case TIOpcode::J:
-    return executeJ;
-  case TIOpcode::CLZ:
-    return executeClz;
-  case TIOpcode::SSAT:
-    return executeSsat;
-  case TIOpcode::RORI:
-    return executeRori;
-  case TIOpcode::BEXT:
-    return executeBext;
-  case TIOpcode::SYSCALL:
-    return executeSyscall;
-  case TIOpcode::LDimm:
-    return executeLdImm;
-  case TIOpcode::INVALID:
-  default:
-    return executeInvalid;
+void executeLi(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu                  = Context.cpu();
+  const auto &Operands             = Instruction.Operands;
+  Cpu.Registers[Operands[0].Value] = Operands[1].Value;
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeAdd(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  Registers[Operands[0].Value] =
+      Registers[Operands[1].Value] + Registers[Operands[2].Value];
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeAddi(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  Registers[Operands[0].Value] =
+      Registers[Operands[1].Value] + Operands[2].Value;
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeOr(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  Registers[Operands[0].Value] =
+      Registers[Operands[1].Value] | Registers[Operands[2].Value];
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeLdReg(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  TIMemory &Memory     = Context.memory();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  uint32_t Address =
+      Registers[Operands[1].Value] + Registers[Operands[2].Value];
+  Registers[Operands[0].Value] = Memory.read32(Address);
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeLdImm(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  TIMemory &Memory     = Context.memory();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  uint32_t Address     = Registers[Operands[1].Value] + Operands[2].Value;
+  Registers[Operands[0].Value] = Memory.read32(Address);
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeSt(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  TIMemory &Memory     = Context.memory();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  uint32_t Address     = Registers[Operands[1].Value] + Operands[2].Value;
+  Memory.write32(Address, Registers[Operands[0].Value]);
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeStp(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  TIMemory &Memory     = Context.memory();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  uint32_t Address     = Registers[Operands[2].Value] + Operands[3].Value;
+
+  Memory.write32(Address, Registers[Operands[0].Value]);
+  Memory.write32(Address + TI32::WORD_SIZE, Registers[Operands[1].Value]);
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeBeq(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  if (Registers[Operands[0].Value] == Registers[Operands[1].Value]) {
+    Cpu.PC += Operands[2].Value * TI32::INSTRUCTION_SIZE;
+  } else {
+    Cpu.PC += TI32::INSTRUCTION_SIZE;
   }
 }
 
-void executeInstructionSwitch(TIThreadState &Thread) {
-  switch (Thread.Current->OpCode) {
-  case TIOpcode::LI:
-    return executeLi(Thread);
-  case TIOpcode::ADD:
-    return executeAdd(Thread);
-  case TIOpcode::ADDI:
-    return executeAddi(Thread);
-  case TIOpcode::OR:
-    return executeOr(Thread);
-  case TIOpcode::LDreg:
-    return executeLdReg(Thread);
-  case TIOpcode::ST:
-    return executeSt(Thread);
-  case TIOpcode::STP:
-    return executeStp(Thread);
-  case TIOpcode::BEQ:
-    return executeBeq(Thread);
-  case TIOpcode::J:
-    return executeJ(Thread);
-  case TIOpcode::CLZ:
-    return executeClz(Thread);
-  case TIOpcode::SSAT:
-    return executeSsat(Thread);
-  case TIOpcode::RORI:
-    return executeRori(Thread);
-  case TIOpcode::BEXT:
-    return executeBext(Thread);
-  case TIOpcode::SYSCALL:
-    return executeSyscall(Thread);
-  case TIOpcode::LDimm:
-    return executeLdImm(Thread);
-  case TIOpcode::INVALID:
-  default:
-    return executeInvalid(Thread);
+void executeJ(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  const auto &Operands = Instruction.Operands;
+  Cpu.PC = (Cpu.PC & 0xF0000000) | (Operands[0].Value * TI32::INSTRUCTION_SIZE);
+}
+
+void executeClz(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  Registers[Operands[0].Value] =
+      countLeadingZeros(Registers[Operands[1].Value]);
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeSsat(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  Registers[Operands[0].Value] =
+      saturateSigned(Registers[Operands[1].Value], Operands[2].Value);
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeRori(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  Registers[Operands[0].Value] =
+      rotateRight(Registers[Operands[1].Value], Operands[2].Value);
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeBext(ExecutionContext &Context, const TIInstruction &Instruction) {
+  TICpuState &Cpu      = Context.cpu();
+  const auto &Operands = Instruction.Operands;
+  auto &Registers      = Cpu.Registers;
+  Registers[Operands[0].Value] =
+      compressBits(Registers[Operands[1].Value], Registers[Operands[2].Value]);
+  Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+void executeSyscall(ExecutionContext &Context, const TIInstruction &) {
+  Context.syscallEmulator().execute(Context.cpu(), Context.memory(),
+                                    Context.state());
+  if (Context.state().Status == ExecutionStatus::RUNNING) {
+    Context.cpu().PC += TI32::INSTRUCTION_SIZE;
   }
+}
+
+void executeInvalid(ExecutionContext &, const TIInstruction &) {
+  throw SimulationException(ErrorCode::INVALID_INSTRUCTION,
+                            "[EXECUTE] Invalid instruction");
 }

@@ -24,7 +24,7 @@ void checkInstruction(std::ifstream &File, TIDecoder &Decoder, const char *Name,
           std::string(Name) + ": incorrect opcode");
   require(Instruction.Operands.size() == ExpectedOperands.size(),
           std::string(Name) + ": incorrect operand count");
-  require(Instruction.Execute != nullptr,
+  require(Instruction.ThreadedHandler != nullptr,
           std::string(Name) + ": execute handler is missing");
 
   std::size_t Index = 0;

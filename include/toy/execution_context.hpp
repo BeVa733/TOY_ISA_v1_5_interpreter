@@ -38,11 +38,17 @@ public:
   /// Execute instructions while the execution status is RUNNING
   void run();
 
-  /// Const metodes for check state in tests
+  /// State accessors
+  TICpuState &cpu() { return Cpu; }
   const TICpuState &cpu() const { return Cpu; }
+
   TIMemory &memory() { return Memory; }
   const TIMemory &memory() const { return Memory; }
+
+  TIExecutionState &state() { return State; }
   const TIExecutionState &state() const { return State; }
+
+  TISyscallEmulator &syscallEmulator() { return SyscallEmulator; }
 
 private:
   TICpuState Cpu{};

@@ -1,4 +1,6 @@
 #include "../../include/toy/execution_context.hpp"
+#include "../../include/execution_type/switch_executor.hpp"
+#include "../../include/execution_type/threaded_executor.hpp"
 #include "../../include/toy/toy_constants.hpp"
 
 #include <elfio/elfio.hpp>
@@ -9,8 +11,8 @@
 namespace {
 
 void loadSegment(const ELFIO::segment *Segment, TIMemory &Memory) {
-  const ELFIO::Elf64_Addr Address = Segment->get_virtual_address();
-  const ELFIO::Elf_Xword FileSize = Segment->get_file_size();
+  const ELFIO::Elf64_Addr Address   = Segment->get_virtual_address();
+  const ELFIO::Elf_Xword FileSize   = Segment->get_file_size();
   const ELFIO::Elf_Xword MemorySize = Segment->get_memory_size();
 
   if (FileSize > MemorySize) {
@@ -100,15 +102,9 @@ void ExecutionContext::run() {
 }
 
 void ExecutionContext::executeBlock(const TIBasicBlock &Block) {
-  const auto &Instructions = Block.instructions();
-
   if (Mode == TIExecutionMode::SWITCH) {
     try {
-      for (const TIInstruction &Instruction : Instructions) {
-        TIThreadState Thread(Cpu, Memory, State, SyscallEmulator, &Instruction,
-                             &Instruction + 1);
-        executeInstructionSwitch(Thread);
-      }
+      executeSwitchBlock(*this, Block);
     } catch (const SimulationException &) {
       State.fault();
       throw;
@@ -116,11 +112,8 @@ void ExecutionContext::executeBlock(const TIBasicBlock &Block) {
     return;
   }
 
-  TIThreadState Thread(Cpu, Memory, State, SyscallEmulator, Instructions.data(),
-                       Instructions.data() + Instructions.size());
-
   try {
-    Thread.Current->Execute(Thread);
+    executeThreadedBlock(*this, Block);
   } catch (const SimulationException &) {
     State.fault();
     throw;

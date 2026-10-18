@@ -1,7 +1,8 @@
 #pragma once
 
+#include "../execution_type/threaded_executor.hpp"
 #include "bitutils.hpp"
-#include "executor.hpp"
+#include "instruction.hpp"
 
 #include <vector>
 
@@ -180,12 +181,12 @@ public:
     for (auto It = DecodeVector.begin(); It != DecodeVector.end(); ++It) {
       if ((Word & It->Mask) == It->Reference) {
         TIInstruction Instruction = It->Handler(Word);
-        Instruction.Execute       = getExecuteHandler(Instruction.OpCode);
+        Instruction.ThreadedHandler = getThreadedHandler(Instruction.OpCode);
         return Instruction;
       }
     }
 
-    return {TIOpcode::INVALID, {}, getExecuteHandler(TIOpcode::INVALID)};
+    return {TIOpcode::INVALID, {}, getThreadedHandler(TIOpcode::INVALID)};
   }
 
 private:

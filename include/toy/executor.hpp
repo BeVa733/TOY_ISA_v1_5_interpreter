@@ -1,31 +1,22 @@
 #pragma once
 
-#include "cpu_state.hpp"
-#include "execution_state.hpp"
 #include "instruction.hpp"
-#include "memory.hpp"
-#include "syscall_emulator.hpp"
 
-struct TIThreadState final {
-  TIThreadState(TICpuState &CpuState, TIMemory &MemoryState,
-                TIExecutionState &ExecutionState,
-                TISyscallEmulator &SyscallState,
-                const TIInstruction *FirstInstruction,
-                const TIInstruction *EndInstruction)
-      : Cpu(CpuState), Memory(MemoryState), State(ExecutionState),
-        SyscallEmulator(SyscallState), Current(FirstInstruction),
-        End(EndInstruction) {}
+class ExecutionContext;
 
-  TICpuState &Cpu;
-  TIMemory &Memory;
-  TIExecutionState &State;
-  TISyscallEmulator &SyscallEmulator;
-  const TIInstruction *Current = nullptr;
-  const TIInstruction *End     = nullptr;
-};
-
-/// Return the threaded execution handler for an internal opcode.
-TIExecuteHandler getExecuteHandler(TIOpcode OpCode);
-
-/// Execute one instruction through the central switch dispatcher.
-void executeInstructionSwitch(TIThreadState &Thread);
+void executeLi      (ExecutionContext &, const TIInstruction &);
+void executeAdd     (ExecutionContext &, const TIInstruction &);
+void executeAddi    (ExecutionContext &, const TIInstruction &);
+void executeOr      (ExecutionContext &, const TIInstruction &);
+void executeLdReg   (ExecutionContext &, const TIInstruction &);
+void executeLdImm   (ExecutionContext &, const TIInstruction &);
+void executeSt      (ExecutionContext &, const TIInstruction &);
+void executeStp     (ExecutionContext &, const TIInstruction &);
+void executeBeq     (ExecutionContext &, const TIInstruction &);
+void executeJ       (ExecutionContext &, const TIInstruction &);
+void executeClz     (ExecutionContext &, const TIInstruction &);
+void executeSsat    (ExecutionContext &, const TIInstruction &);
+void executeRori    (ExecutionContext &, const TIInstruction &);
+void executeBext    (ExecutionContext &, const TIInstruction &);
+void executeSyscall (ExecutionContext &, const TIInstruction &);
+void executeInvalid (ExecutionContext &, const TIInstruction &);
