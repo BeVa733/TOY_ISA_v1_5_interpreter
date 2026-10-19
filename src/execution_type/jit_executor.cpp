@@ -17,12 +17,38 @@ namespace {
 using TIInstructionHandler = void (*)(ExecutionContext &,
                                       const TIInstruction &);
 
-void encodeCall(ir_ctx *ctx, ir_ref ContextReference,
+template <typename TAction>
+void executeHelper(ExecutionContext *Context, TAction Action) noexcept {
+  try {
+    Action();
+  } catch (...) {
+    Context->state().fault();
+  }
+}
+
+void executeInstructionHelper(ExecutionContext *Context,
+                              const TIInstruction *Instruction,
+                              TIInstructionHandler Handler) noexcept {
+  executeHelper(Context, [&] { Handler(*Context, *Instruction); });
+}
+
+void encodeExitIfStopped(ir_ctx *ctx, ExecutionContext &Context) {
+  ir_ref Status  = ir_LOAD_U8(ir_CONST_ADDR(&Context.state().Status));
+  ir_ref Stopped = ir_IF(ir_NE(
+      Status, ir_CONST_U8(static_cast<uint8_t>(ExecutionStatus::RUNNING))));
+  ir_IF_TRUE(Stopped);
+  ir_RETURN(IR_UNUSED);
+  ir_IF_FALSE(Stopped);
+}
+
+void encodeCall(ir_ctx *ctx, ir_ref ContextReference, ExecutionContext &Context,
                 const TIInstruction &Instruction,
                 TIInstructionHandler Handler) {
   ir_ref HandlerReference     = ir_CONST_ADDR(Handler);
   ir_ref InstructionReference = ir_CONST_ADDR(&Instruction);
-  ir_CALL_2(IR_VOID, HandlerReference, ContextReference, InstructionReference);
+  ir_CALL_3(IR_VOID, ir_CONST_ADDR(executeInstructionHelper), ContextReference,
+            InstructionReference, HandlerReference);
+  encodeExitIfStopped(ctx, Context);
 }
 
 void encodeLi(ir_ctx *ctx, ExecutionContext &Context,
@@ -92,7 +118,7 @@ void encodeSsat(ir_ctx *ctx, ir_ref ContextReference, ExecutionContext &Context,
 
   // for raise exception
   if (Width == 0 || Width >= TI32::WORD_BIT_COUNT) {
-    return encodeCall(ctx, ContextReference, Inst, executeSsat);
+    return encodeCall(ctx, ContextReference, Context, Inst, executeSsat);
   }
 
   int32_t Maximum = static_cast<int32_t>((uint32_t{1} << (Width - 1)) - 1);
@@ -133,13 +159,15 @@ void encodeBext(ir_ctx *ctx, ExecutionContext &Context,
 }
 
 // ---------- Memory work helpers ----------------------------------
-uint32_t readMemory32(ExecutionContext *Context, uint32_t Address) {
-  return Context->memory().read32(Address);
+uint32_t readMemory32(ExecutionContext *Context, uint32_t Address) noexcept {
+  uint32_t Value = 0;
+  executeHelper(Context, [&] { Value = Context->memory().read32(Address); });
+  return Value;
 }
 
 void writeMemory32(ExecutionContext *Context, uint32_t Address,
-                   uint32_t Value) {
-  Context->memory().write32(Address, Value);
+                   uint32_t Value) noexcept {
+  executeHelper(Context, [&] { Context->memory().write32(Address, Value); });
 }
 // -----------------------------------------------------------------
 
@@ -154,6 +182,7 @@ void encodeLdImm(ir_ctx *ctx, ir_ref ContextReference,
   ir_ref Value =
       ir_CALL_2(IR_U32, ir_CONST_ADDR(readMemory32), ContextReference, Addr);
 
+  encodeExitIfStopped(ctx, Context);
   ir_STORE(ir_CONST_ADDR(RtPtr), Value);
 }
 
@@ -169,6 +198,7 @@ void encodeLdReg(ir_ctx *ctx, ir_ref ContextReference,
   ir_ref Value =
       ir_CALL_2(IR_U32, ir_CONST_ADDR(readMemory32), ContextReference, Addr);
 
+  encodeExitIfStopped(ctx, Context);
   ir_STORE(ir_CONST_ADDR(RtPtr), Value);
 }
 
@@ -184,6 +214,7 @@ void encodeSt(ir_ctx *ctx, ir_ref ContextReference, ExecutionContext &Context,
 
   ir_CALL_3(IR_VOID, ir_CONST_ADDR(writeMemory32), ContextReference, Addr,
             Value);
+  encodeExitIfStopped(ctx, Context);
 }
 
 void encodeStp(ir_ctx *ctx, ir_ref ContextReference, ExecutionContext &Context,
@@ -202,8 +233,10 @@ void encodeStp(ir_ctx *ctx, ir_ref ContextReference, ExecutionContext &Context,
 
   ir_CALL_3(IR_VOID, ir_CONST_ADDR(writeMemory32), ContextReference, Addr1,
             Value1);
+  encodeExitIfStopped(ctx, Context);
   ir_CALL_3(IR_VOID, ir_CONST_ADDR(writeMemory32), ContextReference, Addr2,
             Value2);
+  encodeExitIfStopped(ctx, Context);
 }
 
 // Branch encoders
@@ -276,13 +309,15 @@ void encodeInstruction(ir_ctx *ctx, ExecutionContext &Context,
     return encodeBext(ctx, Context, Instruction);
   case TIOpcode::SYSCALL:
     encodePc(ctx, Context, InstructionAddress);
-    return encodeCall(ctx, ContextReference, Instruction, executeSyscall);
+    return encodeCall(ctx, ContextReference, Context, Instruction,
+                      executeSyscall);
   case TIOpcode::LDimm:
     return encodeLdImm(ctx, ContextReference, Context, Instruction);
   case TIOpcode::INVALID:
   default:
     encodePc(ctx, Context, InstructionAddress);
-    return encodeCall(ctx, ContextReference, Instruction, executeInvalid);
+    return encodeCall(ctx, ContextReference, Context, Instruction,
+                      executeInvalid);
   }
 }
 

@@ -77,6 +77,17 @@ void testExecutionFault(const std::string &Filename, TIExecutionMode Mode) {
           "Execution error did not fault the context");
 }
 
+void testJitExecutionFault(const std::string &Filename) {
+  ExecutionContext Context(64, TIExecutionMode::JIT);
+  Context.loadBinary(Filename);
+
+  Context.step();
+  require(Context.state().Status == ExecutionStatus::FAULTED,
+          "JIT execution error did not fault the context");
+  require(Context.cpu().PC == 0,
+          "JIT continued execution after the execution error");
+}
+
 } // namespace
 
 int main(int ArgumentCount, char *Arguments[]) {
@@ -93,6 +104,7 @@ int main(int ArgumentCount, char *Arguments[]) {
     testExecution(Arguments[2], TIExecutionMode::JIT);
     testExecutionFault(Arguments[3], TIExecutionMode::THREADED);
     testExecutionFault(Arguments[3], TIExecutionMode::SWITCH);
+    testJitExecutionFault(Arguments[3]);
   } catch (const std::runtime_error &Error) {
     std::cerr << Error.what() << '\n';
     return 1;
