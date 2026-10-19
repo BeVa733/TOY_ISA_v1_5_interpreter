@@ -1,3 +1,4 @@
+#include "../include/execution_type/jit_executor.hpp"
 #include "../include/toy/basic_block_cache.hpp"
 #include "../include/toy/execution_context.hpp"
 #include "test_utils.hpp"
@@ -23,6 +24,14 @@ void testCache(const std::string &Filename) {
           "J block has incorrect last instruction");
   require(&Cache.getBlock(0, Memory, Decoder) == &Jump,
           "Cached block was decoded again");
+
+  executeJitBlock(Context, Jump, 1);
+  require(Jump.executionCount() == 1 && !Jump.hasCompiledBlock(),
+          "JIT compiled a block before its threshold");
+  Context.cpu().PC = 0;
+  executeJitBlock(Context, Jump, 1);
+  require(Jump.hasCompiledBlock(),
+          "JIT did not cache a block after its threshold");
 
   TIBasicBlock &Overlap = Cache.getBlock(4, Memory, Decoder);
   require(Overlap.instructions().size() == 2,
@@ -88,12 +97,38 @@ void testJitExecutionFault(const std::string &Filename) {
           "JIT continued execution after the execution error");
 }
 
+void testJitExecution(const std::string &Filename) {
+  ExecutionContext Context(256, TIExecutionMode::JIT);
+  Context.loadBinary(Filename);
+  Context.run();
+
+  const TICpuState &Cpu = Context.cpu();
+  require(Context.state().Status == ExecutionStatus::HALTED,
+          "JIT program did not halt");
+  require(Context.state().ExitCode == 42,
+          "JIT program returned an incorrect exit code");
+  require(Cpu.Registers[3] == 30 && Cpu.Registers[4] == 25 &&
+              Cpu.Registers[5] == 30,
+          "JIT arithmetic instructions returned incorrect results");
+  require(Cpu.Registers[6] == 28 && Cpu.Registers[7] == 7 &&
+              Cpu.Registers[9] == 5 && Cpu.Registers[12] == 9,
+          "JIT bit instructions returned incorrect results");
+  require(Cpu.Registers[14] == 30 && Cpu.Registers[16] == 25,
+          "JIT load instructions returned incorrect results");
+  require(Context.memory().read32(136) == 10 &&
+              Context.memory().read32(140) == 20,
+          "JIT store pair returned incorrect results");
+  require(Cpu.Registers[17] == 0,
+          "JIT control flow returned an incorrect result");
+  require(Cpu.PC == 96, "JIT syscall has an incorrect PC");
+}
+
 } // namespace
 
 int main(int ArgumentCount, char *Arguments[]) {
-  if (ArgumentCount != 4) {
+  if (ArgumentCount != 5) {
     std::cerr << "Usage: " << Arguments[0]
-              << " <cache.bin> <program.bin> <fault.bin>\n";
+              << " <cache.elf> <program.elf> <fault.elf> <jit.elf>\n";
     return 1;
   }
 
@@ -105,6 +140,7 @@ int main(int ArgumentCount, char *Arguments[]) {
     testExecutionFault(Arguments[3], TIExecutionMode::THREADED);
     testExecutionFault(Arguments[3], TIExecutionMode::SWITCH);
     testJitExecutionFault(Arguments[3]);
+    testJitExecution(Arguments[4]);
   } catch (const std::runtime_error &Error) {
     std::cerr << Error.what() << '\n';
     return 1;

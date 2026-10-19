@@ -31,4 +31,5 @@ add_test(
 		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/cache.elf
 		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/program.elf
 		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/fault.elf
+		${CMAKE_CURRENT_SOURCE_DIR}/basic_block_test/jit.elf
 )
