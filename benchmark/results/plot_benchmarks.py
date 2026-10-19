@@ -12,15 +12,18 @@ import matplotlib.pyplot as plt
 
 PROGRAM_RE = re.compile(r"^==\s+(.+?)\s+==$")
 RESULT_RE = re.compile(
-    r"^(?P<mode>threaded|switch|jit-t0|jit-t1|jit-t10)\s+"
+    r"^(?P<mode>threaded|switch|jit-t0|jit-t1|jit-t10|jit-o0|jit-o1|jit-o2)\s+"
     r"median=\s*(?P<median>[0-9]+(?:\.[0-9]+)?)\s+us\s+"
     r"min=\s*(?P<minimum>[0-9]+(?:\.[0-9]+)?)\s+us\s+"
     r"exit=(?P<exit>\d+)\s*$"
 )
 MODES = ("threaded", "switch", "jit-t0", "jit-t1", "jit-t10")
+OPTIMIZATION_MODES = ("jit-o0", "jit-o1", "jit-o2")
 
 
-def read_results(filename: Path) -> dict[str, dict[str, dict[str, float]]]:
+def read_results(
+    filename: Path, modes: tuple[str, ...]
+) -> dict[str, dict[str, dict[str, float]]]:
     results: dict[str, dict[str, dict[str, float]]] = {}
     program: str | None = None
 
@@ -45,7 +48,7 @@ def read_results(filename: Path) -> dict[str, dict[str, dict[str, float]]]:
     if not results:
         raise ValueError(f"В файле {filename} не найдено результатов бенчмарка")
 
-    expected_modes = set(MODES)
+    expected_modes = set(modes)
     missing = {
         program: expected_modes - set(modes)
         for program, modes in results.items()
@@ -58,16 +61,21 @@ def read_results(filename: Path) -> dict[str, dict[str, dict[str, float]]]:
     return results
 
 
-def plot_results(results: dict[str, dict[str, dict[str, float]]], metric: str, output: Path) -> None:
+def plot_results(
+    results: dict[str, dict[str, dict[str, float]]],
+    modes: tuple[str, ...],
+    metric: str,
+    output: Path,
+) -> None:
     programs = list(results)
     figure, axes = plt.subplots(
         1, len(programs), figsize=(4.5 * len(programs), 5.5), squeeze=False
     )
-    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:len(MODES)]
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:len(modes)]
 
     for axis, program in zip(axes[0], programs):
-        values = [results[program][mode][metric] for mode in MODES]
-        bars = axis.bar(MODES, values, color=colors)
+        values = [results[program][mode][metric] for mode in modes]
+        bars = axis.bar(modes, values, color=colors)
         axis.bar_label(bars, fmt="%.2f", padding=3, fontsize=8)
         axis.set_title(program.removesuffix(".elf"))
         axis.set_ylabel(f"{metric}, мкс")
@@ -92,11 +100,16 @@ def main() -> None:
         "--metric", choices=("median", "minimum"), default="median",
         help="какие значения показывать (по умолчанию: median)",
     )
+    parser.add_argument(
+        "--suite", choices=("execution", "optimization"), default="execution",
+        help="набор режимов для графика (по умолчанию: execution)",
+    )
     args = parser.parse_args()
 
-    results = read_results(args.input)
+    modes = MODES if args.suite == "execution" else OPTIMIZATION_MODES
+    results = read_results(args.input, modes)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    plot_results(results, args.metric, args.output)
+    plot_results(results, modes, args.metric, args.output)
 
 
 if __name__ == "__main__":

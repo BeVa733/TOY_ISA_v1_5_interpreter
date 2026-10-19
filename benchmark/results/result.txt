@@ -1,26 +1,26 @@
 JIT thresholds: 0, 1, 10
 
 == linear.elf ==
-threaded  median=    173.62 us min=    167.92 us exit=42
-switch    median=    173.90 us min=    168.56 us exit=42
-jit-t0    median=   1327.47 us min=   1265.17 us exit=42
-jit-t1    median=    174.56 us min=    168.33 us exit=42
-jit-t10   median=    173.55 us min=    168.23 us exit=42
+threaded  median=    170.24 us min=    168.56 us exit=42
+switch    median=    171.55 us min=    168.65 us exit=42
+jit-t0    median=   1312.83 us min=   1265.68 us exit=42
+jit-t1    median=    171.22 us min=    168.68 us exit=42
+jit-t10   median=    171.26 us min=    168.64 us exit=42
 ==============================
 
 == loop.elf ==
-threaded  median=     68.28 us min=     65.66 us exit=42
-switch    median=     86.91 us min=     86.78 us exit=42
-jit-t0    median=     55.74 us min=     53.51 us exit=42
-jit-t1    median=     37.13 us min=     35.23 us exit=42
-jit-t10   median=     36.69 us min=     35.43 us exit=42
+threaded  median=     65.49 us min=     65.33 us exit=42
+switch    median=     85.82 us min=     85.45 us exit=42
+jit-t0    median=     54.46 us min=     52.22 us exit=42
+jit-t1    median=     35.63 us min=     34.73 us exit=42
+jit-t10   median=     35.44 us min=     34.24 us exit=42
 ==============================
 
 == memory.elf ==
-threaded  median=    133.74 us min=    129.20 us exit=42
-switch    median=    135.66 us min=    131.70 us exit=42
-jit-t0    median=    127.83 us min=    121.26 us exit=42
-jit-t1    median=    100.75 us min=     96.91 us exit=42
-jit-t10   median=    100.15 us min=     96.39 us exit=42
+threaded  median=    133.61 us min=    127.79 us exit=42
+switch    median=    137.11 us min=    132.90 us exit=42
+jit-t0    median=    123.78 us min=    119.01 us exit=42
+jit-t1    median=     99.09 us min=     95.17 us exit=42
+jit-t10   median=     98.91 us min=     94.81 us exit=42
 ==============================
 

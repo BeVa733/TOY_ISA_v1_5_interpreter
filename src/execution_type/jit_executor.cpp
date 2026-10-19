@@ -394,7 +394,8 @@ ir_ref encodeNextJitEntry(ir_ctx *ctx, ExecutionContext &Context,
 
 TICompiledBlock compileBlock(ir_ctx *ctx, ExecutionContext &Context,
                              TIBasicBlockCache &Cache,
-                             const TIBasicBlock &Block) {
+                             const TIBasicBlock &Block,
+                             uint8_t OptimizationLevel) {
   ir_START();
   ctx->ret_type           = IR_ADDR;
   ir_ref ContextReference = ir_PARAM(IR_ADDR, "context", 1);
@@ -413,9 +414,9 @@ TICompiledBlock compileBlock(ir_ctx *ctx, ExecutionContext &Context,
   }
 
   ir_RETURN(encodeNextJitEntry(ctx, Context, Cache, Block));
-  std::size_t CodeSize = 0;
-  TIJitFunction EntryPoint =
-      reinterpret_cast<TIJitFunction>(ir_jit_compile(ctx, 0, &CodeSize));
+  std::size_t CodeSize     = 0;
+  TIJitFunction EntryPoint = reinterpret_cast<TIJitFunction>(
+      ir_jit_compile(ctx, OptimizationLevel, &CodeSize));
   return TICompiledBlock(EntryPoint, CodeSize);
 }
 
@@ -439,10 +440,12 @@ void executeJitBlock(ExecutionContext &Context, TIBasicBlockCache &Cache,
 
   if (!Block.hasCompiledBlock()) {
     ir_ctx IrContext{};
-    ir_init(&IrContext, IR_FUNCTION, IR_CONSTS_LIMIT_MIN, IR_INSNS_LIMIT_MIN);
+    const uint32_t IrFlags =
+        IR_FUNCTION | (Context.jitOptimizationLevel() > 0 ? IR_OPT_FOLDING : 0);
+    ir_init(&IrContext, IrFlags, IR_CONSTS_LIMIT_MIN, IR_INSNS_LIMIT_MIN);
 
-    TICompiledBlock CompiledBlock =
-        compileBlock(&IrContext, Context, Cache, Block);
+    TICompiledBlock CompiledBlock = compileBlock(
+        &IrContext, Context, Cache, Block, Context.jitOptimizationLevel());
     ir_free(&IrContext);
 
     if (CompiledBlock.empty()) {

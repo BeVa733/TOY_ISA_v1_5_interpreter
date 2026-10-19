@@ -22,8 +22,9 @@ public:
   explicit ExecutionContext(
       std::size_t MemorySize,
       TIExecutionMode ExecutionMode = TIExecutionMode::THREADED,
-      uint64_t JitThreshold         = 0)
-      : Memory(MemorySize), Mode(ExecutionMode), JitThreshold_(JitThreshold) {
+      uint64_t JitThreshold = 0, uint8_t JitOptimizationLevel = 0)
+      : Memory(MemorySize), Mode(ExecutionMode), JitThreshold_(JitThreshold),
+        JitOptimizationLevel_(JitOptimizationLevel) {
 
     // this for call BB functions for this context
     Memory.setWriteObserver([this](uint32_t Address, std::size_t ByteCount) {
@@ -52,6 +53,8 @@ public:
 
   TISyscallEmulator &syscallEmulator() { return SyscallEmulator; }
 
+  uint8_t jitOptimizationLevel() const { return JitOptimizationLevel_; }
+
 private:
   TICpuState Cpu{};
   TIMemory Memory;
@@ -59,8 +62,9 @@ private:
   TIDecoder Decoder{};
   TIBasicBlockCache BlockCache{};
   TISyscallEmulator SyscallEmulator{};
-  TIExecutionMode Mode   = TIExecutionMode::THREADED;
-  uint64_t JitThreshold_ = 0;
+  TIExecutionMode Mode          = TIExecutionMode::THREADED;
+  uint64_t JitThreshold_        = 0;
+  uint8_t JitOptimizationLevel_ = 0;
 
   void executeBlock(TIBasicBlock &Block);
 };
