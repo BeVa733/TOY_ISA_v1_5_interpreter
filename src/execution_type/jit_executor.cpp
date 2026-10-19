@@ -252,30 +252,6 @@ void encodeJ(ir_ctx *ctx, ExecutionContext &Context, const TIInstruction &Inst,
   encodePc(ctx, Context, Target);
 }
 
-void encodeBeq(ir_ctx *ctx, ExecutionContext &Context,
-               const TIInstruction &Inst, uint32_t InstructionAddress) {
-  uint32_t *RsPtr = &Context.cpu().Registers[Inst.Operands[0].Value];
-  uint32_t *RtPtr = &Context.cpu().Registers[Inst.Operands[1].Value];
-  uint32_t Offset = Inst.Operands[2].Value;
-
-  ir_ref RsVal = ir_LOAD_U32(ir_CONST_ADDR(RsPtr));
-  ir_ref RtVal = ir_LOAD_U32(ir_CONST_ADDR(RtPtr));
-
-  ir_ref cond = ir_IF(ir_EQ(RsVal, RtVal));
-  ir_IF_TRUE(cond);
-  ir_ref NewPC =
-      ir_CONST_U32(InstructionAddress + Offset * TI32::INSTRUCTION_SIZE);
-  ir_ref end_true = ir_END();
-
-  ir_IF_FALSE(cond);
-  ir_ref IncPC     = ir_CONST_U32(InstructionAddress + TI32::INSTRUCTION_SIZE);
-  ir_ref end_false = ir_END();
-
-  ir_MERGE_2(end_true, end_false);
-  ir_ref ResultPC = ir_PHI_2(IR_U32, NewPC, IncPC);
-  ir_STORE(ir_CONST_ADDR(&Context.cpu().PC), ResultPC);
-}
-
 void encodeInstruction(ir_ctx *ctx, ExecutionContext &Context,
                        ir_ref ContextReference,
                        const TIInstruction &Instruction,
@@ -295,8 +271,6 @@ void encodeInstruction(ir_ctx *ctx, ExecutionContext &Context,
     return encodeSt(ctx, ContextReference, Context, Instruction);
   case TIOpcode::STP:
     return encodeStp(ctx, ContextReference, Context, Instruction);
-  case TIOpcode::BEQ:
-    return encodeBeq(ctx, Context, Instruction, InstructionAddress);
   case TIOpcode::J:
     return encodeJ(ctx, Context, Instruction, InstructionAddress);
   case TIOpcode::CLZ:
@@ -366,11 +340,14 @@ ir_ref encodeNextJitEntry(ir_ctx *ctx, ExecutionContext &Context,
     ir_ref Condition = ir_IF(ir_EQ(RsVal, RtVal));
     ir_IF_TRUE(Condition);
     ir_ref TakenEntry = encodeJitEntryLoad(ctx, Cache, TakenAddress);
-    ir_ref TakenEnd   = ir_END();
+    ir_STORE(ir_CONST_ADDR(&Context.cpu().PC), ir_CONST_U32(TakenAddress));
+    ir_ref TakenEnd = ir_END();
 
     ir_IF_FALSE(Condition);
     ir_ref FallthroughEntry =
         encodeJitEntryLoad(ctx, Cache, FallthroughAddress);
+    ir_STORE(ir_CONST_ADDR(&Context.cpu().PC),
+             ir_CONST_U32(FallthroughAddress));
     ir_ref FallthroughEnd = ir_END();
 
     ir_MERGE_2(TakenEnd, FallthroughEnd);
@@ -402,6 +379,12 @@ TICompiledBlock compileBlock(ir_ctx *ctx, ExecutionContext &Context,
 
   const auto &Instructions = Block.instructions();
   for (std::size_t Index = 0; Index < Block.instructionCount(); ++Index) {
+    const bool IsTerminalBeq = Index + 1 == Block.instructionCount() &&
+                               Instructions[Index].OpCode == TIOpcode::BEQ;
+    if (IsTerminalBeq) {
+      continue;
+    }
+
     uint32_t InstructionAddress =
         Block.startAddress() +
         static_cast<uint32_t>(Index * TI32::INSTRUCTION_SIZE);

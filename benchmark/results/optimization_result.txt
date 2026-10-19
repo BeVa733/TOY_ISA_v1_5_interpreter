@@ -1,20 +1,20 @@
 JIT optimization levels: 0, 1, 2; threshold: 1
 
 == linear.elf ==
-jit-o0    median=    244.97 us min=    229.21 us exit=42
-jit-o1    median=    266.94 us min=    229.37 us exit=42
-jit-o2    median=    266.35 us min=    229.51 us exit=42
+jit-o0    median=    236.96 us min=    228.22 us exit=42
+jit-o1    median=    236.65 us min=    228.19 us exit=42
+jit-o2    median=    240.74 us min=    228.00 us exit=42
 ==============================
 
 == loop.elf ==
-jit-o0    median=     37.85 us min=     36.52 us exit=42
-jit-o1    median=     41.41 us min=     39.91 us exit=42
-jit-o2    median=     42.75 us min=     40.29 us exit=42
+jit-o0    median=     31.95 us min=     30.62 us exit=42
+jit-o1    median=     35.63 us min=     34.52 us exit=42
+jit-o2    median=     36.82 us min=     35.60 us exit=42
 ==============================
 
 == memory.elf ==
-jit-o0    median=    103.33 us min=    100.56 us exit=42
-jit-o1    median=    105.52 us min=    100.60 us exit=42
-jit-o2    median=    107.23 us min=    101.13 us exit=42
+jit-o0    median=     97.64 us min=     96.18 us exit=42
+jit-o1    median=     99.57 us min=     93.43 us exit=42
+jit-o2    median=    101.06 us min=     94.83 us exit=42
 ==============================
 
