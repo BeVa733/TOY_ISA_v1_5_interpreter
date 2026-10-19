@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../execution_type/jit_executor.hpp"
 #include "decoder.hpp"
 #include "memory.hpp"
 
@@ -25,13 +26,29 @@ public:
            static_cast<uint32_t>(Instructions.size() * TI32::INSTRUCTION_SIZE);
   }
 
+  std::size_t instructionCount() const { return Instructions.size(); }
+
+  uint64_t executionCount() const { return ExecutionCount_; }
+
+  void recordExecution() { ++ExecutionCount_; }
+
   const std::vector<TIInstruction> &instructions() const {
     return Instructions;
   }
 
+  bool hasCompiledBlock() const { return !CompiledBlock.empty(); }
+
+  TICompiledBlock &compiledBlock() { return CompiledBlock; }
+
+  void setCompiledBlock(TICompiledBlock Block) {
+    CompiledBlock = std::move(Block);
+  }
+
 private:
-  uint32_t StartAddress_ = 0;
+  uint32_t StartAddress_   = 0;
+  uint64_t ExecutionCount_ = 0;
   std::vector<TIInstruction> Instructions{};
+  TICompiledBlock CompiledBlock{};
 };
 
 class TIBasicBlockCache final {

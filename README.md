@@ -17,7 +17,7 @@ chmod +x assembler/toy_as.rb
 ./assembler/toy_as.rb <source_filename> [binary_filename]
 
 # Интерпретатор
-./build/interpreter <source_binary_filename> [--engine=threaded|switch|jit]
+./build/interpreter <source_binary_filename> [--engine=threaded|switch|jit] [--jit-threshold=N]
 
 # Прогон всех доступных тестов
 ctest --test-dir build

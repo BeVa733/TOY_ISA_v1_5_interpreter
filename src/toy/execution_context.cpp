@@ -92,7 +92,7 @@ void ExecutionContext::loadBinary(const std::string &Filename,
 }
 
 void ExecutionContext::step() {
-  const TIBasicBlock &Block = BlockCache.getBlock(Cpu.PC, Memory, Decoder);
+  TIBasicBlock &Block = BlockCache.getBlock(Cpu.PC, Memory, Decoder);
   executeBlock(Block);
 }
 
@@ -102,14 +102,14 @@ void ExecutionContext::run() {
   }
 }
 
-void ExecutionContext::executeBlock(const TIBasicBlock &Block) {
+void ExecutionContext::executeBlock(TIBasicBlock &Block) {
   try {
     switch (Mode) {
     case TIExecutionMode::SWITCH:
       executeSwitchBlock(*this, Block);
       return;
     case TIExecutionMode::JIT:
-      executeJitBlock(*this, Block);
+      executeJitBlock(*this, Block, JitThreshold_);
       return;
     case TIExecutionMode::THREADED:
       executeThreadedBlock(*this, Block);

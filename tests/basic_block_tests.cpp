@@ -90,6 +90,7 @@ int main(int ArgumentCount, char *Arguments[]) {
     testCache(Arguments[1]);
     testExecution(Arguments[2], TIExecutionMode::THREADED);
     testExecution(Arguments[2], TIExecutionMode::SWITCH);
+    testExecution(Arguments[2], TIExecutionMode::JIT);
     testExecutionFault(Arguments[3], TIExecutionMode::THREADED);
     testExecutionFault(Arguments[3], TIExecutionMode::SWITCH);
   } catch (const std::runtime_error &Error) {
