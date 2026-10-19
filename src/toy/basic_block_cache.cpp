@@ -52,6 +52,10 @@ void TIBasicBlockCache::invalidateRange(uint32_t Address,
     const uint64_t BlockBegin = It->second.startAddress();
     const uint64_t BlockEnd   = It->second.endAddress();
     if (BlockBegin < WriteEnd && WriteBegin < BlockEnd) {
+      auto EntryIt = JitEntries.find(It->first);
+      if (EntryIt != JitEntries.end()) {
+        EntryIt->second = nullptr;
+      }
       It = Blocks.erase(It);
     } else {
       ++It;

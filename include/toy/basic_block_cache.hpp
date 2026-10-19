@@ -57,14 +57,31 @@ public:
   TIBasicBlock &getBlock(uint32_t Address, const TIMemory &Memory,
                          TIDecoder &Decoder);
 
-  void clear() { Blocks.clear(); }
+  /// Return a stable slot containing the translated entry for an address.
+  TIJitFunction *jitEntrySlot(uint32_t Address) {
+    return &JitEntries.try_emplace(Address, nullptr).first->second;
+  }
+
+  /// Publish a translated entry point for block chaining.
+  void setJitEntry(uint32_t Address, TIJitFunction EntryPoint) {
+    *jitEntrySlot(Address) = EntryPoint;
+  }
+
+  void clear() {
+    Blocks.clear();
+    JitEntries.clear();
+  }
 
   void invalidateRange(uint32_t Address, std::size_t ByteCount);
 
 private:
-  using BlockMap = std::unordered_map<uint32_t, TIBasicBlock>;
+  using BlockMap    = std::unordered_map<uint32_t, TIBasicBlock>;
+  using JitEntryMap = std::unordered_map<uint32_t, TIJitFunction>;
 
   BlockMap Blocks{};
+  // Entries are not erased individually because translated blocks embed their
+  // addresses. Invalidation only clears their values.
+  JitEntryMap JitEntries{};
 
   TIBasicBlock &decodeBlock(uint32_t Address, const TIMemory &Memory,
                             TIDecoder &Decoder);

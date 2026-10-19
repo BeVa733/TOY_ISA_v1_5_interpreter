@@ -8,16 +8,16 @@ import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 PROGRAM_RE = re.compile(r"^==\s+(.+?)\s+==$")
 RESULT_RE = re.compile(
-    r"^(?P<mode>threaded|switch)\s+"
+    r"^(?P<mode>threaded|switch|jit-t0|jit-t1|jit-t10)\s+"
     r"median=\s*(?P<median>[0-9]+(?:\.[0-9]+)?)\s+us\s+"
     r"min=\s*(?P<minimum>[0-9]+(?:\.[0-9]+)?)\s+us\s+"
     r"exit=(?P<exit>\d+)\s*$"
 )
+MODES = ("threaded", "switch", "jit-t0", "jit-t1", "jit-t10")
 
 
 def read_results(filename: Path) -> dict[str, dict[str, dict[str, float]]]:
@@ -45,10 +45,11 @@ def read_results(filename: Path) -> dict[str, dict[str, dict[str, float]]]:
     if not results:
         raise ValueError(f"В файле {filename} не найдено результатов бенчмарка")
 
+    expected_modes = set(MODES)
     missing = {
-        program: {"threaded", "switch"} - set(modes)
+        program: expected_modes - set(modes)
         for program, modes in results.items()
-        if {"threaded", "switch"} - set(modes)
+        if expected_modes - set(modes)
     }
     if missing:
         details = ", ".join(f"{name}: {sorted(modes)}" for name, modes in missing.items())
@@ -59,24 +60,21 @@ def read_results(filename: Path) -> dict[str, dict[str, dict[str, float]]]:
 
 def plot_results(results: dict[str, dict[str, dict[str, float]]], metric: str, output: Path) -> None:
     programs = list(results)
-    threaded = [results[name]["threaded"][metric] for name in programs]
-    switch = [results[name]["switch"][metric] for name in programs]
+    figure, axes = plt.subplots(
+        1, len(programs), figsize=(4.5 * len(programs), 5.5), squeeze=False
+    )
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:len(MODES)]
 
-    positions = np.arange(len(programs))
-    width = 0.36
-    figure, axis = plt.subplots(figsize=(9, 5.5))
-    bars_threaded = axis.bar(positions - width / 2, threaded, width, label="threaded")
-    bars_switch = axis.bar(positions + width / 2, switch, width, label="switch")
-
-    axis.set_title("TOY ISA benchmark")
-    axis.set_xlabel("Программа")
-    axis.set_ylabel(f"{metric} время, мкс")
-    axis.set_xticks(positions, [name.removesuffix(".elf") for name in programs])
-    axis.grid(axis="y", linestyle="--", alpha=0.35)
-    axis.legend()
-
-    for bars in (bars_threaded, bars_switch):
+    for axis, program in zip(axes[0], programs):
+        values = [results[program][mode][metric] for mode in MODES]
+        bars = axis.bar(MODES, values, color=colors)
         axis.bar_label(bars, fmt="%.2f", padding=3, fontsize=8)
+        axis.set_title(program.removesuffix(".elf"))
+        axis.set_ylabel(f"{metric}, мкс")
+        axis.tick_params(axis="x", rotation=30)
+        axis.grid(axis="y", linestyle="--", alpha=0.35)
+
+    figure.suptitle("TOY ISA benchmark")
 
     figure.tight_layout()
     figure.savefig(output, dpi=160)

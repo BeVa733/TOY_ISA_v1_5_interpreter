@@ -37,7 +37,7 @@ void encodeExitIfStopped(ir_ctx *ctx, ExecutionContext &Context) {
   ir_ref Stopped = ir_IF(ir_NE(
       Status, ir_CONST_U8(static_cast<uint8_t>(ExecutionStatus::RUNNING))));
   ir_IF_TRUE(Stopped);
-  ir_RETURN(IR_UNUSED);
+  ir_RETURN(ir_CONST_ADDR(0));
   ir_IF_FALSE(Stopped);
 }
 
@@ -334,9 +334,69 @@ bool updatesPc(TIOpcode OpCode) {
   }
 }
 
+ir_ref encodeJitEntryLoad(ir_ctx *ctx, TIBasicBlockCache &Cache,
+                          uint32_t Address) {
+  return ir_LOAD_A(ir_CONST_ADDR(Cache.jitEntrySlot(Address)));
+}
+
+ir_ref encodeNextJitEntry(ir_ctx *ctx, ExecutionContext &Context,
+                          TIBasicBlockCache &Cache, const TIBasicBlock &Block) {
+  const auto &Instructions = Block.instructions();
+  if (Instructions.empty()) {
+    return encodeJitEntryLoad(ctx, Cache, Block.endAddress());
+  }
+
+  const TIInstruction &LastInstruction = Instructions.back();
+  uint32_t InstructionAddress = Block.endAddress() - TI32::INSTRUCTION_SIZE;
+
+  switch (LastInstruction.OpCode) {
+  case TIOpcode::BEQ: {
+    uint32_t *RsPtr =
+        &Context.cpu().Registers[LastInstruction.Operands[0].Value];
+    uint32_t *RtPtr =
+        &Context.cpu().Registers[LastInstruction.Operands[1].Value];
+    uint32_t TakenAddress =
+        InstructionAddress +
+        LastInstruction.Operands[2].Value * TI32::INSTRUCTION_SIZE;
+    uint32_t FallthroughAddress = InstructionAddress + TI32::INSTRUCTION_SIZE;
+
+    ir_ref RsVal = ir_LOAD_U32(ir_CONST_ADDR(RsPtr));
+    ir_ref RtVal = ir_LOAD_U32(ir_CONST_ADDR(RtPtr));
+
+    ir_ref Condition = ir_IF(ir_EQ(RsVal, RtVal));
+    ir_IF_TRUE(Condition);
+    ir_ref TakenEntry = encodeJitEntryLoad(ctx, Cache, TakenAddress);
+    ir_ref TakenEnd   = ir_END();
+
+    ir_IF_FALSE(Condition);
+    ir_ref FallthroughEntry =
+        encodeJitEntryLoad(ctx, Cache, FallthroughAddress);
+    ir_ref FallthroughEnd = ir_END();
+
+    ir_MERGE_2(TakenEnd, FallthroughEnd);
+    return ir_PHI_2(IR_ADDR, TakenEntry, FallthroughEntry);
+  }
+  case TIOpcode::J: {
+    uint32_t Target =
+        (InstructionAddress & 0xF0000000) |
+        (LastInstruction.Operands[0].Value * TI32::INSTRUCTION_SIZE);
+    return encodeJitEntryLoad(ctx, Cache, Target);
+  }
+  case TIOpcode::INVALID:
+    return ir_CONST_ADDR(0);
+  case TIOpcode::SYSCALL:
+    return encodeJitEntryLoad(ctx, Cache,
+                              InstructionAddress + TI32::INSTRUCTION_SIZE);
+  default:
+    return encodeJitEntryLoad(ctx, Cache, Block.endAddress());
+  }
+}
+
 TICompiledBlock compileBlock(ir_ctx *ctx, ExecutionContext &Context,
+                             TIBasicBlockCache &Cache,
                              const TIBasicBlock &Block) {
   ir_START();
+  ctx->ret_type           = IR_ADDR;
   ir_ref ContextReference = ir_PARAM(IR_ADDR, "context", 1);
 
   const auto &Instructions = Block.instructions();
@@ -352,7 +412,7 @@ TICompiledBlock compileBlock(ir_ctx *ctx, ExecutionContext &Context,
     encodePc(ctx, Context, Block.endAddress());
   }
 
-  ir_RETURN(IR_UNUSED);
+  ir_RETURN(encodeNextJitEntry(ctx, Context, Cache, Block));
   std::size_t CodeSize = 0;
   TIJitFunction EntryPoint =
       reinterpret_cast<TIJitFunction>(ir_jit_compile(ctx, 0, &CodeSize));
@@ -369,8 +429,8 @@ void TICompiledBlock::reset() {
   }
 }
 
-void executeJitBlock(ExecutionContext &Context, TIBasicBlock &Block,
-                     uint64_t Threshold) {
+void executeJitBlock(ExecutionContext &Context, TIBasicBlockCache &Cache,
+                     TIBasicBlock &Block, uint64_t Threshold) {
   if (!Block.hasCompiledBlock() && Block.executionCount() < Threshold) {
     Block.recordExecution();
     executeThreadedBlock(Context, Block);
@@ -381,7 +441,8 @@ void executeJitBlock(ExecutionContext &Context, TIBasicBlock &Block,
     ir_ctx IrContext{};
     ir_init(&IrContext, IR_FUNCTION, IR_CONSTS_LIMIT_MIN, IR_INSNS_LIMIT_MIN);
 
-    TICompiledBlock CompiledBlock = compileBlock(&IrContext, Context, Block);
+    TICompiledBlock CompiledBlock =
+        compileBlock(&IrContext, Context, Cache, Block);
     ir_free(&IrContext);
 
     if (CompiledBlock.empty()) {
@@ -389,7 +450,11 @@ void executeJitBlock(ExecutionContext &Context, TIBasicBlock &Block,
     }
 
     Block.setCompiledBlock(std::move(CompiledBlock));
+    Cache.setJitEntry(Block.startAddress(), Block.compiledBlock().entryPoint());
   }
 
-  Block.compiledBlock().execute(Context);
+  TIJitFunction NextEntry = Block.compiledBlock().execute(Context);
+  while (NextEntry != nullptr) {
+    NextEntry = reinterpret_cast<TIJitFunction>(NextEntry(&Context));
+  }
 }

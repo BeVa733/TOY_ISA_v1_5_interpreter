@@ -12,6 +12,9 @@ PlotFile="${ProjectDirectory}/benchmark/results/result_plot.png"
 Programs=("${ProgramDirectory}"/*.elf)
 
 {
+  echo "JIT thresholds: 0, 1, 10"
+  echo
+
   for Program in "${Programs[@]}"; do
     echo "== $(basename "${Program}") =="
     "${BenchmarkExecutable}" "${Program}"

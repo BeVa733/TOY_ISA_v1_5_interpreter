@@ -5,9 +5,10 @@
 #include <utility>
 
 class TIBasicBlock;
+class TIBasicBlockCache;
 class ExecutionContext;
 
-using TIJitFunction = void (*)(ExecutionContext *);
+using TIJitFunction = uintptr_t (*)(ExecutionContext *);
 
 class TICompiledBlock final {
 public:
@@ -39,7 +40,12 @@ public:
 
   bool empty() const { return EntryPoint_ == nullptr; }
 
-  void execute(ExecutionContext &Context) const { EntryPoint_(&Context); }
+  TIJitFunction execute(ExecutionContext &Context) const {
+    return reinterpret_cast<TIJitFunction>(EntryPoint_(&Context));
+  }
+
+  /// Return the native entry point stored by this translation.
+  TIJitFunction entryPoint() const { return EntryPoint_; }
 
 private:
   TIJitFunction EntryPoint_ = nullptr;
@@ -49,5 +55,5 @@ private:
 };
 
 /// Compile and execute one basic block through IR.
-void executeJitBlock(ExecutionContext &Context, TIBasicBlock &Block,
-                     uint64_t Threshold);
+void executeJitBlock(ExecutionContext &Context, TIBasicBlockCache &Cache,
+                     TIBasicBlock &Block, uint64_t Threshold);

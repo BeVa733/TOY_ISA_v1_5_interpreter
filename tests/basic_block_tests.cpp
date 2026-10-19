@@ -25,13 +25,15 @@ void testCache(const std::string &Filename) {
   require(&Cache.getBlock(0, Memory, Decoder) == &Jump,
           "Cached block was decoded again");
 
-  executeJitBlock(Context, Jump, 1);
+  executeJitBlock(Context, Cache, Jump, 1);
   require(Jump.executionCount() == 1 && !Jump.hasCompiledBlock(),
           "JIT compiled a block before its threshold");
   Context.cpu().PC = 0;
-  executeJitBlock(Context, Jump, 1);
+  executeJitBlock(Context, Cache, Jump, 1);
   require(Jump.hasCompiledBlock(),
           "JIT did not cache a block after its threshold");
+  TIJitFunction *JumpEntry = Cache.jitEntrySlot(0);
+  require(*JumpEntry != nullptr, "JIT did not publish its chaining entry");
 
   TIBasicBlock &Overlap = Cache.getBlock(4, Memory, Decoder);
   require(Overlap.instructions().size() == 2,
@@ -53,6 +55,8 @@ void testCache(const std::string &Filename) {
     Cache.invalidateRange(Address, ByteCount);
   });
   Memory.write32(0, 0);
+  require(*JumpEntry == nullptr,
+          "Invalidated JIT block remained available for chaining");
   const TIBasicBlock &Invalidated = Cache.getBlock(0, Memory, Decoder);
   require(Invalidated.instructions().front().OpCode == TIOpcode::INVALID,
           "Code write did not invalidate the affected block");

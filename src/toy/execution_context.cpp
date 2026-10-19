@@ -109,7 +109,7 @@ void ExecutionContext::executeBlock(TIBasicBlock &Block) {
       executeSwitchBlock(*this, Block);
       return;
     case TIExecutionMode::JIT:
-      executeJitBlock(*this, Block, JitThreshold_);
+      executeJitBlock(*this, BlockCache, Block, JitThreshold_);
       return;
     case TIExecutionMode::THREADED:
       executeThreadedBlock(*this, Block);

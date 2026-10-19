@@ -2,6 +2,7 @@
 #include "../include/toy/toy_constants.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -21,9 +22,16 @@ struct BenchmarkResult final {
   uint32_t ExitCode = 0;
 };
 
+struct BenchmarkCase final {
+  const char *Name      = nullptr;
+  TIExecutionMode Mode  = TIExecutionMode::THREADED;
+  uint64_t JitThreshold = 0;
+  BenchmarkResult Result{};
+};
+
 void measureSample(const std::string &Filename, TIExecutionMode Mode,
-                   BenchmarkResult &Result) {
-  ExecutionContext Context(MEMORY_SIZE, Mode);
+                   uint64_t JitThreshold, BenchmarkResult &Result) {
+  ExecutionContext Context(MEMORY_SIZE, Mode, JitThreshold);
   Context.loadBinary(Filename);
 
   const auto Start = std::chrono::steady_clock::now();
@@ -66,27 +74,37 @@ int main(int argc, char *argv[]) {
 
   try {
     const std::string Filename = argv[1];
-    BenchmarkResult Threaded{};
-    BenchmarkResult Switch{};
-    Threaded.Samples.reserve(SAMPLE_COUNT);
-    Switch.Samples.reserve(SAMPLE_COUNT);
+    std::array<BenchmarkCase, 5> Cases{
+        {
+         {"threaded", TIExecutionMode::THREADED, 0, {}},
+         {"switch", TIExecutionMode::SWITCH, 0, {}},
+         {"jit-t0", TIExecutionMode::JIT, 0, {}},
+         {"jit-t1", TIExecutionMode::JIT, 1, {}},
+         {"jit-t10", TIExecutionMode::JIT, 10, {}},
+         }
+    };
+
+    for (BenchmarkCase &Case : Cases) {
+      Case.Result.Samples.reserve(SAMPLE_COUNT);
+    }
 
     for (std::size_t Iteration = 0; Iteration < SAMPLE_COUNT; ++Iteration) {
-      if (Iteration % 2 == 0) {
-        measureSample(Filename, TIExecutionMode::THREADED, Threaded);
-        measureSample(Filename, TIExecutionMode::SWITCH, Switch);
-      } else {
-        measureSample(Filename, TIExecutionMode::SWITCH, Switch);
-        measureSample(Filename, TIExecutionMode::THREADED, Threaded);
+      for (std::size_t Offset = 0; Offset < Cases.size(); ++Offset) {
+        BenchmarkCase &Case = Cases[(Iteration + Offset) % Cases.size()];
+        measureSample(Filename, Case.Mode, Case.JitThreshold, Case.Result);
       }
     }
 
-    if (Threaded.ExitCode != Switch.ExitCode) {
-      throw std::runtime_error("Execution modes returned different exit codes");
+    for (const BenchmarkCase &Case : Cases) {
+      if (Case.Result.ExitCode != Cases.front().Result.ExitCode) {
+        throw std::runtime_error(
+            "Execution modes returned different exit codes");
+      }
     }
 
-    printResult("threaded", Threaded);
-    printResult("switch", Switch);
+    for (const BenchmarkCase &Case : Cases) {
+      printResult(Case.Name, Case.Result);
+    }
   } catch (const std::exception &Error) {
     std::cerr << Error.what() << '\n';
     return 1;
