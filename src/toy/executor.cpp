@@ -114,16 +114,6 @@ void executeSt(ExecutionContext &Context, const TIInstruction &Instruction) {
   Cpu.PC += TI32::INSTRUCTION_SIZE;
 }
 
-void executeStSmc(ExecutionContext &Context,
-                  const TIInstruction &Instruction) {
-  TICpuState &Cpu = Context.cpu();
-  const auto &Operands = Instruction.Operands;
-  const auto &Registers = Cpu.Registers;
-  uint32_t Address = Registers[Operands[1].Value] + Operands[2].Value;
-  executeSt(Context, Instruction);
-  Context.invalidateCodeRange(Address, TI32::WORD_SIZE);
-}
-
 void executeStp(ExecutionContext &Context, const TIInstruction &Instruction) {
   TICpuState &Cpu = Context.cpu();
   TIMemory &Memory = Context.memory();
@@ -135,14 +125,9 @@ void executeStp(ExecutionContext &Context, const TIInstruction &Instruction) {
   Cpu.PC += TI32::INSTRUCTION_SIZE;
 }
 
-void executeStpSmc(ExecutionContext &Context,
-                   const TIInstruction &Instruction) {
-  TICpuState &Cpu = Context.cpu();
-  const auto &Operands = Instruction.Operands;
-  const auto &Registers = Cpu.Registers;
-  uint32_t Address = Registers[Operands[2].Value] + Operands[3].Value;
-  executeStp(Context, Instruction);
-  Context.invalidateCodeRange(Address, 2 * TI32::WORD_SIZE);
+void executeFlush(ExecutionContext &Context, const TIInstruction &) {
+  Context.flushInstructionCache();
+  Context.cpu().PC += TI32::INSTRUCTION_SIZE;
 }
 
 void executeBeq(ExecutionContext &Context, const TIInstruction &Instruction) {

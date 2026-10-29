@@ -49,9 +49,7 @@ public:
 
   uint8_t jitOptimizationLevel() const { return JitOptimizationLevel_; }
 
-  void invalidateCodeRange(uint32_t Address, std::size_t ByteCount) {
-    BlockCache.invalidateRange(Address, ByteCount);
-  }
+  void flushInstructionCache();
 
 private:
   TICpuState Cpu{};

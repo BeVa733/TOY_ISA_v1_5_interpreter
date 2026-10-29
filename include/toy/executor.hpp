@@ -19,9 +19,8 @@ void executeOr     (ExecutionContext &Context, const TIInstruction &Instruction)
 void executeLdReg  (ExecutionContext &Context, const TIInstruction &Instruction);
 void executeLdImm  (ExecutionContext &Context, const TIInstruction &Instruction);
 void executeSt     (ExecutionContext &Context, const TIInstruction &Instruction);
-void executeStSmc  (ExecutionContext &Context, const TIInstruction &Instruction);
 void executeStp    (ExecutionContext &Context, const TIInstruction &Instruction);
-void executeStpSmc (ExecutionContext &Context, const TIInstruction &Instruction);
+void executeFlush  (ExecutionContext &Context, const TIInstruction &Instruction);
 void executeBeq    (ExecutionContext &Context, const TIInstruction &Instruction);
 void executeJ      (ExecutionContext &Context, const TIInstruction &Instruction);
 void executeClz    (ExecutionContext &Context, const TIInstruction &Instruction);

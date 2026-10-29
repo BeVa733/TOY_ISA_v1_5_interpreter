@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "bitutils.hpp"
@@ -20,11 +21,27 @@ struct TIMemoryRange {
   std::size_t Size = 0;
 };
 
+struct TICodeRange {
+  uint32_t Address = 0;
+  std::size_t Size = 0;
+};
+
 class TIMemory {
 public:
   explicit TIMemory(std::size_t SizeBytes) : Bytes(SizeBytes, 0) {}
 
   std::size_t size() const { return Bytes.size(); }
+
+  void addExecutableRegion(uint32_t Address, std::size_t ByteCount) {
+    checkBounds(Address, ByteCount);
+    ExecutableRegions.push_back({Address, ByteCount});
+  }
+
+  std::vector<TICodeRange> takeDirtyCodeRanges() {
+    std::vector<TICodeRange> Ranges = std::move(DirtyCodeRanges);
+    DirtyCodeRanges.clear();
+    return Ranges;
+  }
 
   /// Return a checked read-only range valid while this memory is not moved.
   TIConstMemoryRange readableRange(uint32_t Address,
@@ -51,10 +68,26 @@ public:
     TIMemoryRange Range = writableRange(Address, TI32::WORD_SIZE);
     checkAlignment(Address);
     encodeLittleEndianWord(Range.Data, Value);
+    markCodeDirty(Address, TI32::WORD_SIZE);
   }
 
 private:
   std::vector<uint8_t> Bytes{};
+  std::vector<TICodeRange> ExecutableRegions{};
+  std::vector<TICodeRange> DirtyCodeRanges{};
+
+  void markCodeDirty(uint32_t Address, std::size_t ByteCount) {
+    const uint64_t WriteBegin = Address;
+    const uint64_t WriteEnd   = WriteBegin + ByteCount;
+    for (const TICodeRange &Region : ExecutableRegions) {
+      const uint64_t RegionBegin = Region.Address;
+      const uint64_t RegionEnd   = RegionBegin + Region.Size;
+      if (RegionBegin < WriteEnd && WriteBegin < RegionEnd) {
+        DirtyCodeRanges.push_back({Address, ByteCount});
+        return;
+      }
+    }
+  }
 
   void checkBounds(uint32_t Address, std::size_t ByteCount) const {
     constexpr uint64_t ADDRESS_SPACE_SIZE = uint64_t{1} << TI32::WORD_BIT_COUNT;

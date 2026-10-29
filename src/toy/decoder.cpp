@@ -1,5 +1,5 @@
 #include "toy/decoder.hpp"
-#include "toy/bitutils.hpp"   
+#include "toy/bitutils.hpp"
 
 #include "execution_type/threaded_executor.hpp"
 
@@ -9,8 +9,8 @@ namespace {
   TIInstruction decode##Name(uint32_t Word) { __VA_ARGS__ }
 
 DEFINE_DECODE_FUNCTION(St, {
-  uint32_t Base      = extractBits(Word, 21, 5);
-  uint32_t Rt        = extractBits(Word, 16, 5);
+  uint32_t Base = extractBits(Word, 21, 5);
+  uint32_t Rt = extractBits(Word, 16, 5);
   uint32_t Immediate = signExtend(extractBits(Word, 0, 14), 14);
   return {
       TIOpcode::ST,
@@ -20,21 +20,9 @@ DEFINE_DECODE_FUNCTION(St, {
   };
 })
 
-DEFINE_DECODE_FUNCTION(StSmc, {
-  uint32_t Base      = extractBits(Word, 21, 5);
-  uint32_t Rt        = extractBits(Word, 16, 5);
-  uint32_t Immediate = signExtend(extractBits(Word, 0, 14), 14);
-  return {
-      TIOpcode::ST_SMC,
-      {{OperandType::REGISTER, Rt},
-                {OperandType::REGISTER, Base},
-                {OperandType::IMMEDIATE, Immediate}}
-  };
-})
-
 DEFINE_DECODE_FUNCTION(Addi, {
-  uint32_t Rs        = extractBits(Word, 21, 5);
-  uint32_t Rt        = extractBits(Word, 16, 5);
+  uint32_t Rs = extractBits(Word, 21, 5);
+  uint32_t Rt = extractBits(Word, 16, 5);
   uint32_t Immediate = signExtend(extractBits(Word, 0, 16), 16);
   return {
       TIOpcode::ADDI,
@@ -58,8 +46,8 @@ DEFINE_DECODE_FUNCTION(Or, {
 
 DEFINE_DECODE_FUNCTION(LdReg, {
   uint32_t Base = extractBits(Word, 21, 5);
-  uint32_t Rt   = extractBits(Word, 16, 5);
-  uint32_t Rm   = extractBits(Word, 0, 5);
+  uint32_t Rt = extractBits(Word, 16, 5);
+  uint32_t Rm = extractBits(Word, 0, 5);
   return {
       TIOpcode::LDreg,
       {{OperandType::REGISTER, Rt},
@@ -73,8 +61,8 @@ DEFINE_DECODE_FUNCTION(J, {
 })
 
 DEFINE_DECODE_FUNCTION(Beq, {
-  uint32_t Rs     = extractBits(Word, 21, 5);
-  uint32_t Rt     = extractBits(Word, 16, 5);
+  uint32_t Rs = extractBits(Word, 21, 5);
+  uint32_t Rt = extractBits(Word, 16, 5);
   uint32_t Offset = signExtend(extractBits(Word, 0, 16), 16);
   return {
       TIOpcode::BEQ,
@@ -102,8 +90,8 @@ DEFINE_DECODE_FUNCTION(Ssat, {
 })
 
 DEFINE_DECODE_FUNCTION(LdImm, {
-  uint32_t Base      = extractBits(Word, 21, 5);
-  uint32_t Rt        = extractBits(Word, 16, 5);
+  uint32_t Base = extractBits(Word, 21, 5);
+  uint32_t Rt = extractBits(Word, 16, 5);
   uint32_t Immediate = signExtend(extractBits(Word, 0, 14), 14);
   return {
       TIOpcode::LDimm,
@@ -163,23 +151,14 @@ DEFINE_DECODE_FUNCTION(Stp, {
   };
 })
 
-DEFINE_DECODE_FUNCTION(StpSmc, {
-  return {
-      TIOpcode::STP_SMC,
-      {{OperandType::REGISTER, extractBits(Word, 16, 5)},
-                 {OperandType::REGISTER, extractBits(Word, 11, 5)},
-                 {OperandType::REGISTER, extractBits(Word, 21, 5)},
-                 {OperandType::IMMEDIATE, signExtend(extractBits(Word, 0, 11), 11)}}
-  };
-})
+DEFINE_DECODE_FUNCTION(Flush, { return {TIOpcode::FLUSH, {}}; })
 
 #undef DEFINE_DECODE_FUNCTION
 
 } // namespace
 
-const std::array<TIDecoder::DecodeInfo, 17> TIDecoder::DecodeVector{
+const std::array<TIDecoder::DecodeInfo, 16> TIDecoder::DecodeVector{
     {{TIOpcode::ST, 0xFC00C000, 0x80000000, decodeSt},
-     {TIOpcode::ST_SMC, 0xFC000000, 0x90000000, decodeStSmc},
      {TIOpcode::ADDI, 0xFC000000, 0x5C000000, decodeAddi},
      {TIOpcode::OR, 0xFC0007FF, 0x0000001A, decodeOr},
      {TIOpcode::LDreg, 0xFC00FFE0, 0x0C00C000, decodeLdReg},
@@ -194,13 +173,13 @@ const std::array<TIDecoder::DecodeInfo, 17> TIDecoder::DecodeVector{
      {TIOpcode::LI, 0xFFE00000, 0x2C000000, decodeLi},
      {TIOpcode::RORI, 0xFC0007FF, 0x74000000, decodeRori},
      {TIOpcode::STP, 0xFC000000, 0x54000000, decodeStp},
-     {TIOpcode::STP_SMC, 0xFC000000, 0x94000000, decodeStpSmc}}
+     {TIOpcode::FLUSH, 0xFC000000, 0x98000000, decodeFlush}}
 };
 
 TIInstruction TIDecoder::decode(uint32_t Word) const {
   for (const DecodeInfo &Info : DecodeVector) {
     if ((Word & Info.Mask) == Info.Reference) {
-      TIInstruction Instruction   = Info.Handler(Word);
+      TIInstruction Instruction = Info.Handler(Word);
       Instruction.ThreadedHandler = getThreadedHandler(Instruction.OpCode);
       return Instruction;
     }

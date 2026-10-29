@@ -70,8 +70,7 @@ bool TIBasicBlockCache::endsBlock(TIOpcode OpCode) {
   case TIOpcode::J:
   case TIOpcode::SYSCALL:
   case TIOpcode::INVALID:
-  case TIOpcode::ST_SMC:
-  case TIOpcode::STP_SMC:
+  case TIOpcode::FLUSH:
     return true;
 
   default:

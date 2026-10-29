@@ -74,6 +74,10 @@ void ExecutionContext::loadBinary(const std::string &Filename,
             ErrorCode::INCORRECT_BINARY_FILE,
             "[LOADER] Executable ELF segment is not instruction-aligned");
       }
+      Memory.addExecutableRegion(static_cast<uint32_t>(
+                                     Segment->get_virtual_address()),
+                                 static_cast<std::size_t>(
+                                     Segment->get_memory_size()));
       HasExecutableSegment = true;
     }
 
@@ -89,6 +93,12 @@ void ExecutionContext::loadBinary(const std::string &Filename,
   Cpu.PC = static_cast<uint32_t>(Reader.get_entry());
   State.reset();
   BlockCache.clear();
+}
+
+void ExecutionContext::flushInstructionCache() {
+  for (const TICodeRange &Range : Memory.takeDirtyCodeRanges()) {
+    BlockCache.invalidateRange(Range.Address, Range.Size);
+  }
 }
 
 void ExecutionContext::step() {

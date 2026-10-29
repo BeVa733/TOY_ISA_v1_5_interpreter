@@ -26,8 +26,7 @@ enum class TIOpcode : uint8_t {
   BEXT    = 13,
   SYSCALL = 14,
   LDimm   = 15,
-  ST_SMC  = 16,
-  STP_SMC = 17
+  FLUSH   = 16
 };
 
 enum class OperandType : uint8_t {

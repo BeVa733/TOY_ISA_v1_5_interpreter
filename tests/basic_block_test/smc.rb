@@ -10,5 +10,6 @@ J :Modify
 Label :Modify
 Li x1, 12
 Li x2, 30
-StSmc x2, [x1, 0]
+St x2, [x1, 0]
+flush
 J :Target

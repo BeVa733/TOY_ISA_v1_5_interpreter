@@ -18,15 +18,6 @@ class Encoder
     (0x20 << 26) | (base_index << 21) | (rt_index << 16) | immediate
   end
 
-  def encode_stsmc(instruction)
-    require_operand_count(instruction, 2)
-    rt, address = instruction.operands
-    rt_index = register_index(rt, instruction.line)
-    base_index, immediate = memory_address(address, 14, instruction.line)
-
-    (0x24 << 26) | (base_index << 21) | (rt_index << 16) | immediate
-  end
-
   def encode_addi(instruction)
     require_operand_count(instruction, 3)
     rt, rs, immediate = instruction.operands
@@ -127,6 +118,12 @@ class Encoder
     0x1E
   end
 
+  def encode_flush(instruction)
+    require_operand_count(instruction, 0)
+
+    0x26 << 26
+  end
+
   def encode_bext(instruction)
     require_operand_count(instruction, 3)
     rd, rs1, rs2 = instruction.operands
@@ -164,16 +161,6 @@ class Encoder
     base_index, offset = memory_address(address, 11, instruction.line)
 
     (0x15 << 26) | (base_index << 21) | (rt1_index << 16) | (rt2_index << 11) | offset
-  end
-
-  def encode_stpsmc(instruction)
-    require_operand_count(instruction, 3)
-    rt1, rt2, address = instruction.operands
-    rt1_index = register_index(rt1, instruction.line)
-    rt2_index = register_index(rt2, instruction.line)
-    base_index, offset = memory_address(address, 11, instruction.line)
-
-    (0x25 << 26) | (base_index << 21) | (rt1_index << 16) | (rt2_index << 11) | offset
   end
 
   private

@@ -19,5 +19,5 @@ private:
   };
 
   // Match all fixed bits: (Word & Mask) == Reference.
-  static const std::array<DecodeInfo, 17> DecodeVector;
+  static const std::array<DecodeInfo, 16> DecodeVector;
 };
