@@ -125,6 +125,17 @@ inline void executeSt(ExecutionContext &Context,
   Cpu.PC += TI32::INSTRUCTION_SIZE;
 }
 
+inline void executeStSmc(ExecutionContext &Context,
+                         const TIInstruction &Instruction) {
+  TICpuState &Cpu       = Context.cpu();
+  const auto &Operands  = Instruction.Operands;
+  const auto &Registers = Cpu.Registers;
+  uint32_t Address      = Registers[Operands[1].Value] + Operands[2].Value;
+
+  executeSt(Context, Instruction);
+  Context.invalidateCodeRange(Address, TI32::WORD_SIZE);
+}
+
 inline void executeStp(ExecutionContext &Context,
                        const TIInstruction &Instruction) {
   TICpuState &Cpu      = Context.cpu();
@@ -136,6 +147,17 @@ inline void executeStp(ExecutionContext &Context,
   Memory.write32(Address, Registers[Operands[0].Value]);
   Memory.write32(Address + TI32::WORD_SIZE, Registers[Operands[1].Value]);
   Cpu.PC += TI32::INSTRUCTION_SIZE;
+}
+
+inline void executeStpSmc(ExecutionContext &Context,
+                          const TIInstruction &Instruction) {
+  TICpuState &Cpu       = Context.cpu();
+  const auto &Operands  = Instruction.Operands;
+  const auto &Registers = Cpu.Registers;
+  uint32_t Address      = Registers[Operands[2].Value] + Operands[3].Value;
+
+  executeStp(Context, Instruction);
+  Context.invalidateCodeRange(Address, 2 * TI32::WORD_SIZE);
 }
 
 inline void executeBeq(ExecutionContext &Context,

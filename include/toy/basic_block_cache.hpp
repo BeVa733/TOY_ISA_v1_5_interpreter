@@ -30,6 +30,10 @@ public:
 
   uint64_t executionCount() const { return ExecutionCount_; }
 
+  bool isValid() const { return Valid_; }
+
+  void invalidate() { Valid_ = false; }
+
   void recordExecution() { ++ExecutionCount_; }
 
   const std::vector<TIInstruction> &instructions() const {
@@ -47,6 +51,7 @@ public:
 private:
   uint32_t StartAddress_   = 0;
   uint64_t ExecutionCount_ = 0;
+  bool Valid_              = true;
   std::vector<TIInstruction> Instructions{};
   TICompiledBlock CompiledBlock{};
 };

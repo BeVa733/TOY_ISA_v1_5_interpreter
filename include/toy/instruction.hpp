@@ -25,7 +25,9 @@ enum class TIOpcode : uint8_t {
   RORI    = 12,
   BEXT    = 13,
   SYSCALL = 14,
-  LDimm   = 15
+  LDimm   = 15,
+  ST_SMC  = 16,
+  STP_SMC = 17
 };
 
 enum class OperandType : uint8_t {

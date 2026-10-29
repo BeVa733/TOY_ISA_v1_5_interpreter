@@ -22,6 +22,10 @@ void executeInstructionSwitch(ExecutionContext &Context,
     return executeSt(Context, Instruction);
   case TIOpcode::STP:
     return executeStp(Context, Instruction);
+  case TIOpcode::ST_SMC:
+    return executeStSmc(Context, Instruction);
+  case TIOpcode::STP_SMC:
+    return executeStpSmc(Context, Instruction);
   case TIOpcode::BEQ:
     return executeBeq(Context, Instruction);
   case TIOpcode::J:

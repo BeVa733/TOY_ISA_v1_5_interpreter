@@ -24,13 +24,7 @@ public:
       TIExecutionMode ExecutionMode = TIExecutionMode::THREADED,
       uint64_t JitThreshold = 0, uint8_t JitOptimizationLevel = 0)
       : Memory(MemorySize), Mode(ExecutionMode), JitThreshold_(JitThreshold),
-        JitOptimizationLevel_(JitOptimizationLevel) {
-
-    // this for call BB functions for this context
-    Memory.setWriteObserver([this](uint32_t Address, std::size_t ByteCount) {
-      BlockCache.invalidateRange(Address, ByteCount);
-    });
-  }
+        JitOptimizationLevel_(JitOptimizationLevel) {}
 
   /// Load ELF PT_LOAD segments, set PC and reset execution status
   void loadBinary(const std::string &Filename, uint32_t LoadAddress = 0);
@@ -54,6 +48,10 @@ public:
   TISyscallEmulator &syscallEmulator() { return SyscallEmulator; }
 
   uint8_t jitOptimizationLevel() const { return JitOptimizationLevel_; }
+
+  void invalidateCodeRange(uint32_t Address, std::size_t ByteCount) {
+    BlockCache.invalidateRange(Address, ByteCount);
+  }
 
 private:
   TICpuState Cpu{};

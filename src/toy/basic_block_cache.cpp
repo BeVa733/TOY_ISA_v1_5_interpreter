@@ -37,7 +37,10 @@ TIBasicBlock &TIBasicBlockCache::getBlock(uint32_t Address,
                                           TIDecoder &Decoder) {
   auto It = Blocks.find(Address);
   if (It != Blocks.end()) {
-    return It->second;
+    if (It->second.isValid()) {
+      return It->second;
+    }
+    Blocks.erase(It);
   }
 
   return decodeBlock(Address, Memory, Decoder);
@@ -48,7 +51,7 @@ void TIBasicBlockCache::invalidateRange(uint32_t Address,
   const uint64_t WriteBegin = Address;
   const uint64_t WriteEnd   = WriteBegin + ByteCount;
 
-  for (auto It = Blocks.begin(); It != Blocks.end();) {
+  for (auto It = Blocks.begin(); It != Blocks.end(); ++It) {
     const uint64_t BlockBegin = It->second.startAddress();
     const uint64_t BlockEnd   = It->second.endAddress();
     if (BlockBegin < WriteEnd && WriteBegin < BlockEnd) {
@@ -56,9 +59,7 @@ void TIBasicBlockCache::invalidateRange(uint32_t Address,
       if (EntryIt != JitEntries.end()) {
         EntryIt->second = nullptr;
       }
-      It = Blocks.erase(It);
-    } else {
-      ++It;
+      It->second.invalidate();
     }
   }
 }
@@ -69,6 +70,8 @@ bool TIBasicBlockCache::endsBlock(TIOpcode OpCode) {
   case TIOpcode::J:
   case TIOpcode::SYSCALL:
   case TIOpcode::INVALID:
+  case TIOpcode::ST_SMC:
+  case TIOpcode::STP_SMC:
     return true;
 
   default:

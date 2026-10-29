@@ -2,8 +2,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <functional>
-#include <utility>
 #include <vector>
 
 #include "bitutils.hpp"
@@ -24,16 +22,9 @@ struct TIMemoryRange {
 
 class TIMemory {
 public:
-  /// Callback lambda for inform BB Cache about writing into memory
-  using WriteObserver = std::function<void(uint32_t, std::size_t)>;
-
   explicit TIMemory(std::size_t SizeBytes) : Bytes(SizeBytes, 0) {}
 
   std::size_t size() const { return Bytes.size(); }
-
-  void setWriteObserver(WriteObserver Observer) {
-    this->Observer = std::move(Observer);
-  }
 
   /// Return a checked read-only range valid while this memory is not moved.
   TIConstMemoryRange readableRange(uint32_t Address,
@@ -46,9 +37,6 @@ public:
   /// Return a checked writable range valid while this memory is not moved.
   TIMemoryRange writableRange(uint32_t Address, std::size_t ByteCount) {
     checkBounds(Address, ByteCount);
-    if (Observer && ByteCount != 0) {
-      Observer(Address, ByteCount);
-    }
     uint8_t *Data = ByteCount == 0 ? nullptr : Bytes.data() + Address;
     return {Data, ByteCount};
   }
@@ -67,7 +55,6 @@ public:
 
 private:
   std::vector<uint8_t> Bytes{};
-  WriteObserver Observer{};
 
   void checkBounds(uint32_t Address, std::size_t ByteCount) const {
     constexpr uint64_t ADDRESS_SPACE_SIZE = uint64_t{1} << TI32::WORD_BIT_COUNT;

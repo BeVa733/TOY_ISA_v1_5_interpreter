@@ -271,6 +271,12 @@ void encodeInstruction(ir_ctx *ctx, ExecutionContext &Context,
     return encodeSt(ctx, ContextReference, Context, Instruction);
   case TIOpcode::STP:
     return encodeStp(ctx, ContextReference, Context, Instruction);
+  case TIOpcode::ST_SMC:
+    encodeCall(ctx, ContextReference, Context, Instruction, executeStSmc);
+    return encodePc(ctx, Context, InstructionAddress + TI32::INSTRUCTION_SIZE);
+  case TIOpcode::STP_SMC:
+    encodeCall(ctx, ContextReference, Context, Instruction, executeStpSmc);
+    return encodePc(ctx, Context, InstructionAddress + TI32::INSTRUCTION_SIZE);
   case TIOpcode::J:
     return encodeJ(ctx, Context, Instruction, InstructionAddress);
   case TIOpcode::CLZ:
@@ -301,6 +307,8 @@ bool updatesPc(TIOpcode OpCode) {
   case TIOpcode::J:
   case TIOpcode::SYSCALL:
   case TIOpcode::INVALID:
+  case TIOpcode::ST_SMC:
+  case TIOpcode::STP_SMC:
     return true;
 
   default:
@@ -364,6 +372,9 @@ ir_ref encodeNextJitEntry(ir_ctx *ctx, ExecutionContext &Context,
   case TIOpcode::SYSCALL:
     return encodeJitEntryLoad(ctx, Cache,
                               InstructionAddress + TI32::INSTRUCTION_SIZE);
+  case TIOpcode::ST_SMC:
+  case TIOpcode::STP_SMC:
+    return ir_CONST_ADDR(0);
   default:
     return encodeJitEntryLoad(ctx, Cache, Block.endAddress());
   }

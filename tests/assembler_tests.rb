@@ -29,6 +29,7 @@ def check_raises(message, &program)
 end
 
 check_program("ST",           [0x80223FFC]) { St x2, [x1, -4] }
+check_program("ST SMC",       [0x90223FFC]) { StSmc x2, [x1, -4] }
 check_program("ADDI",         [0x5C22FFF9]) { Addi x2, x1, -7 }
 check_program("OR",           [0x0022181A]) { Or x3, x1, x2 }
 check_program("LD register",  [0x0C24C003]) { Ld x4, [x1, x3] }
@@ -49,6 +50,7 @@ check_program("BEXT",         [0x00611034]) { Bext x3, x1, x2 }
 check_program("LI",           [0x2C02FFFF]) { Li x2, -1 }
 check_program("RORI",         [0x74413800]) { Rori x2, x1, 7 }
 check_program("STP",          [0x54221FFC]) { Stp x2, x3, [x1, -4] }
+check_program("STP SMC",      [0x94221FFC]) { StpSmc x2, x3, [x1, -4] }
 
 
 check_raises("Assembler accepted a non-Symbol label") { Label "Loop" }

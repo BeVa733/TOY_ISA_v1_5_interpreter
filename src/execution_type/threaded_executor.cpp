@@ -50,6 +50,16 @@ DEFINE_THREADED_HANDLER(Ssat)
 DEFINE_THREADED_HANDLER(Rori)
 DEFINE_THREADED_HANDLER(Bext)
 
+void threadedStSmc(ExecutionContext &Context, const TIInstruction *Current,
+                   const TIInstruction *) {
+  executeStSmc(Context, *Current);
+}
+
+void threadedStpSmc(ExecutionContext &Context, const TIInstruction *Current,
+                    const TIInstruction *) {
+  executeStpSmc(Context, *Current);
+}
+
 void threadedBeq(ExecutionContext &Context, const TIInstruction *Current,
                  const TIInstruction *) {
   executeBeq(Context, *Current);
@@ -85,6 +95,10 @@ TIThreadedHandler getThreadedHandler(TIOpcode OpCode) {
     return threadedSt;
   case TIOpcode::STP:
     return threadedStp;
+  case TIOpcode::ST_SMC:
+    return threadedStSmc;
+  case TIOpcode::STP_SMC:
+    return threadedStpSmc;
   case TIOpcode::BEQ:
     return threadedBeq;
   case TIOpcode::J:

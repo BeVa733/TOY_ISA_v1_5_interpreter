@@ -37,6 +37,7 @@ class Assembler
     :Or,
     :Ld,
     :St,
+    :StSmc,
     :Beq,
     :J,
     :Clz,
@@ -45,7 +46,8 @@ class Assembler
     :Bext,
     :Li,
     :Rori,
-    :Stp
+    :Stp,
+    :StpSmc
   ]
 
   def initialize

@@ -22,6 +22,18 @@ inline TIInstruction decodeSt(uint32_t Word) {
   };
 }
 
+inline TIInstruction decodeStSmc(uint32_t Word) {
+  uint32_t Base      = extractBits(Word, 21, 5);
+  uint32_t Rt        = extractBits(Word, 16, 5);
+  uint32_t Immediate = signExtend(extractBits(Word, 0, 14), 14);
+  return {
+      TIOpcode::ST_SMC,
+      {{OperandType::REGISTER, Rt},
+                {OperandType::REGISTER, Base},
+                {OperandType::IMMEDIATE, Immediate}}
+  };
+}
+
 inline TIInstruction decodeAddi(uint32_t Word) {
   uint32_t Rs        = extractBits(Word, 21, 5);
   uint32_t Rt        = extractBits(Word, 16, 5);
@@ -173,6 +185,21 @@ inline TIInstruction decodeStp(uint32_t Word) {
   };
 }
 
+inline TIInstruction decodeStpSmc(uint32_t Word) {
+  uint32_t Base   = extractBits(Word, 21, 5);
+  uint32_t Rt1    = extractBits(Word, 16, 5);
+  uint32_t Rt2    = extractBits(Word, 11, 5);
+  uint32_t Offset = signExtend(extractBits(Word, 0, 11), 11);
+
+  return {
+      TIOpcode::STP_SMC,
+      {{OperandType::REGISTER, Rt1},
+                 {OperandType::REGISTER, Rt2},
+                 {OperandType::REGISTER, Base},
+                 {OperandType::IMMEDIATE, Offset}}
+  };
+}
+
 } // namespace
 
 class TIDecoder {
@@ -180,7 +207,7 @@ public:
   TIInstruction decode(uint32_t Word) {
     for (auto It = DecodeVector.begin(); It != DecodeVector.end(); ++It) {
       if ((Word & It->Mask) == It->Reference) {
-        TIInstruction Instruction = It->Handler(Word);
+        TIInstruction Instruction   = It->Handler(Word);
         Instruction.ThreadedHandler = getThreadedHandler(Instruction.OpCode);
         return Instruction;
       }
@@ -190,7 +217,6 @@ public:
   }
 
 private:
-
   struct DecodeInfo final {
     TIOpcode OpCode    = TIOpcode::INVALID;
     uint32_t Mask      = 0x00000000;
@@ -202,6 +228,7 @@ private:
   // Match all fixed bits: (Word & Mask) == Reference.
   const std::vector<DecodeInfo> DecodeVector{
       {TIOpcode::ST,      0xFC00C000, 0x80000000, decodeSt     },
+      {TIOpcode::ST_SMC,  0xFC000000, 0x90000000, decodeStSmc  },
       {TIOpcode::ADDI,    0xFC000000, 0x5C000000, decodeAddi   },
       {TIOpcode::OR,      0xFC0007FF, 0x0000001A, decodeOr     },
       {TIOpcode::LDreg,   0xFC00FFE0, 0x0C00C000, decodeLdReg  },
@@ -215,6 +242,7 @@ private:
       {TIOpcode::BEXT,    0xFC0007FF, 0x00000034, decodeBext   },
       {TIOpcode::LI,      0xFFE00000, 0x2C000000, decodeLi     },
       {TIOpcode::RORI,    0xFC0007FF, 0x74000000, decodeRori   },
-      {TIOpcode::STP,     0xFC000000, 0x54000000, decodeStp    }
+      {TIOpcode::STP,     0xFC000000, 0x54000000, decodeStp    },
+      {TIOpcode::STP_SMC, 0xFC000000, 0x94000000, decodeStpSmc }
   };
 };

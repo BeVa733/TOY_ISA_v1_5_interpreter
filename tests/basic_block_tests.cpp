@@ -51,10 +51,8 @@ void testCache(const std::string &Filename) {
           "SYSCALL block has incorrect last instruction");
 
   const TIBasicBlock *BranchAddress = &Branch;
-  Memory.setWriteObserver([&Cache](uint32_t Address, std::size_t ByteCount) {
-    Cache.invalidateRange(Address, ByteCount);
-  });
   Memory.write32(0, 0);
+  Cache.invalidateRange(0, TI32::WORD_SIZE);
   require(*JumpEntry == nullptr,
           "Invalidated JIT block remained available for chaining");
   const TIBasicBlock &Invalidated = Cache.getBlock(0, Memory, Decoder);
@@ -127,12 +125,24 @@ void testJitExecution(const std::string &Filename) {
   require(Cpu.PC == 96, "JIT syscall has an incorrect PC");
 }
 
+void testSmcExecution(const std::string &Filename, TIExecutionMode Mode) {
+  ExecutionContext Context(64, Mode);
+  Context.loadBinary(Filename);
+  Context.run();
+
+  require(Context.state().Status == ExecutionStatus::HALTED,
+          "SMC program did not halt");
+  require(Context.state().ExitCode == 7,
+          "SMC program returned an incorrect exit code");
+}
+
 } // namespace
 
 int main(int ArgumentCount, char *Arguments[]) {
-  if (ArgumentCount != 5) {
+  if (ArgumentCount != 6) {
     std::cerr << "Usage: " << Arguments[0]
-              << " <cache.elf> <program.elf> <fault.elf> <jit.elf>\n";
+              << " <cache.elf> <program.elf> <fault.elf> <jit.elf>"
+                 " <smc.elf>\n";
     return 1;
   }
 
@@ -145,6 +155,9 @@ int main(int ArgumentCount, char *Arguments[]) {
     testExecutionFault(Arguments[3], TIExecutionMode::SWITCH);
     testJitExecutionFault(Arguments[3]);
     testJitExecution(Arguments[4]);
+    testSmcExecution(Arguments[5], TIExecutionMode::THREADED);
+    testSmcExecution(Arguments[5], TIExecutionMode::SWITCH);
+    testSmcExecution(Arguments[5], TIExecutionMode::JIT);
   } catch (const std::runtime_error &Error) {
     std::cerr << Error.what() << '\n';
     return 1;
