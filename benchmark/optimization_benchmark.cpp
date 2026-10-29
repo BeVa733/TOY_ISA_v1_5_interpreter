@@ -1,5 +1,5 @@
-#include "../include/toy/execution_context.hpp"
-#include "../include/toy/toy_constants.hpp"
+#include "toy/execution_context.hpp"
+#include "toy/toy_constants.hpp"
 
 #include <algorithm>
 #include <array>

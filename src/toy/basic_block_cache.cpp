@@ -1,5 +1,5 @@
-#include "../../include/toy/basic_block_cache.hpp"
-#include "../../include/toy/toy_constants.hpp"
+#include "toy/basic_block_cache.hpp"
+#include "toy/toy_constants.hpp"
 
 #include <utility>
 

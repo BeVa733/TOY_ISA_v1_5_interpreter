@@ -1,6 +1,6 @@
-#include "../include/execution_type/jit_executor.hpp"
-#include "../include/toy/basic_block_cache.hpp"
-#include "../include/toy/execution_context.hpp"
+#include "execution_type/jit_executor.hpp"
+#include "toy/basic_block_cache.hpp"
+#include "toy/execution_context.hpp"
 #include "test_utils.hpp"
 
 #include <iostream>

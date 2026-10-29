@@ -1,5 +1,5 @@
-#include "../include/toy/bitutils.hpp"
-#include "../include/toy/decoder.hpp"
+#include "toy/bitutils.hpp"
+#include "toy/decoder.hpp"
 #include "test_utils.hpp"
 
 #include <cstdint>

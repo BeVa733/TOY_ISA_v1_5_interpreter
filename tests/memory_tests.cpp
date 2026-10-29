@@ -1,7 +1,7 @@
 // Memory test for checking correctness little-endian words read/write,
 // alignment, out of bounds memory access and writable code
 
-#include "../include/toy/memory.hpp"
+#include "toy/memory.hpp"
 #include "test_utils.hpp"
 
 #include <iostream>

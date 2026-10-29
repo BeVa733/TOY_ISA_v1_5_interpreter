@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/toy/execution_state.hpp"
+#include "toy/execution_state.hpp"
 
 #include <stdexcept>
 #include <string>

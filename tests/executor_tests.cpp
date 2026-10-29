@@ -1,5 +1,5 @@
-#include "../include/execution_type/threaded_executor.hpp"
-#include "../include/toy/execution_context.hpp"
+#include "execution_type/threaded_executor.hpp"
+#include "toy/execution_context.hpp"
 #include "test_utils.hpp"
 
 #include <cstdint>

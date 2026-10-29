@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../execution_type/jit_executor.hpp"
+#include "execution_type/jit_executor.hpp"
 #include "decoder.hpp"
 #include "memory.hpp"
 

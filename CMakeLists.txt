@@ -49,7 +49,7 @@ target_link_libraries(toy_isa PRIVATE ir)
 add_subdirectory(src/toy)
 add_subdirectory(src/execution_type)
 target_include_directories(toy_isa PUBLIC
-	include/toy
+	include
 )
 
 add_executable(interpreter)

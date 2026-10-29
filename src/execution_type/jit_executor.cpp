@@ -1,9 +1,9 @@
-#include "../../include/execution_type/jit_executor.hpp"
-#include "../../include/execution_type/threaded_executor.hpp"
-#include "../../include/toy/basic_block_cache.hpp"
-#include "../../include/toy/execution_context.hpp"
-#include "../../include/toy/executor.hpp"
-#include "../../include/toy/toy_constants.hpp"
+#include "execution_type/jit_executor.hpp"
+#include "execution_type/threaded_executor.hpp"
+#include "toy/basic_block_cache.hpp"
+#include "toy/execution_context.hpp"
+#include "toy/executor.hpp"
+#include "toy/toy_constants.hpp"
 
 #include <ir.h>
 #include <ir_builder.h>

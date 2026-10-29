@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../toy/instruction.hpp"
+#include "toy/instruction.hpp"
 
 class TIBasicBlock;
 class ExecutionContext;

@@ -1,7 +1,7 @@
-#include "../../include/execution_type/switch_executor.hpp"
-#include "../../include/toy/basic_block_cache.hpp"
-#include "../../include/toy/execution_context.hpp"
-#include "../../include/toy/executor.hpp"
+#include "execution_type/switch_executor.hpp"
+#include "toy/basic_block_cache.hpp"
+#include "toy/execution_context.hpp"
+#include "toy/executor.hpp"
 
 namespace {
 

@@ -6,7 +6,7 @@
 
 #include <elfio/elfio.hpp>
 
-#include "../include/toy/toy_constants.hpp"
+#include "toy/toy_constants.hpp"
 
 namespace {
 

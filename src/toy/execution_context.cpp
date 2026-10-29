@@ -1,8 +1,8 @@
-#include "../../include/toy/execution_context.hpp"
-#include "../../include/execution_type/jit_executor.hpp"
-#include "../../include/execution_type/switch_executor.hpp"
-#include "../../include/execution_type/threaded_executor.hpp"
-#include "../../include/toy/toy_constants.hpp"
+#include "toy/execution_context.hpp"
+#include "execution_type/jit_executor.hpp"
+#include "execution_type/switch_executor.hpp"
+#include "execution_type/threaded_executor.hpp"
+#include "toy/toy_constants.hpp"
 
 #include <elfio/elfio.hpp>
 
